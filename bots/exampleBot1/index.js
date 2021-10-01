@@ -1,4 +1,4 @@
-const { ALLBOTS, CARDS, DECK, ACTIONS } = require('../constants.js');
+const { ALLBOTS, CARDS, DECK, ACTIONS } = require('../../src/constants.js');
 
 class BOT {
 	onTurn({ history, myCards, myCoins, otherPlayers, discardedCards }) {

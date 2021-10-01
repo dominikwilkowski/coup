@@ -1,12 +1,18 @@
 const path = require('path');
 const fs = require('fs');
 
-const getPlayer = (thisPath = '.') => {
+const getPlayer = (thisPath = './bots/') => {
 	const allPlayer = fs
 		.readdirSync(thisPath)
-		.map((name) => path.join(thisPath, name))
-		.filter((item) => fs.lstatSync(item).isDirectory())
-		.filter((folder) => !folder.startsWith('.') && folder !== 'node_modules');
+		.map((name) => path.join(process.cwd(), thisPath, name))
+		.filter(
+			(folder) =>
+				fs.lstatSync(folder).isDirectory() &&
+				!folder.endsWith('assets') &&
+				!folder.startsWith('.') &&
+				folder !== 'node_modules'
+		)
+		.map((name) => name.split('/').slice(-1)[0]);
 
 	if (allPlayer.length < 2) {
 		console.error(`\n🛑  We need at least two player to play this game!\n`);

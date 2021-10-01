@@ -19,6 +19,7 @@ Between each round you have time to make adjustments to your bot.
 - [How to run the game](#how-to-run-the-game)
 - [How do I build a bot](#how-do-i-build-a-bot)
 - [How does the engine work](#how-does-the-engine-work)
+- [Development](#development)
 
 ## RULES
 
@@ -52,23 +53,29 @@ Those who win get a positive score, those who lose will get a negative score.
 	<img width="968" src="assets/loop.gif">
 </p>
 
-The game comes with a simple "dumb" bot that just randomizes it's answers without checking much whether the actions are appropriate.
-Each bot lives inside a folder and is named after that folder name.
+The game comes with two simple "dumb" bots that just randomizes it's answers without checking much whether the actions are appropriate.
+Each bot lives inside its own folder inside the `bots` folder.
+The name of the folder determines the bots name.
 
 ```sh
 .
-├── bot1
-│   └── index.js
-├── bot2
-│   └── index.js
-├── bot3
+├── bots
+│   ├── bot1
+│   │   └── index.js
+│   ├── bot1
+│   │   └── index.js
+│   └── bot1
+│       └── index.js
+│
+├── src
+│   ├── constants.js
+│   ├── helper.js
 │   └── index.js
 │
-├── README.md
-├── constants.js
-├── helper.js
-├── index.js
-└── test.js
+├── test
+│   └── test.js
+│
+└── README.md
 ```
 
 To run the game `cd` into the folder.
@@ -120,8 +127,8 @@ yarn test
 
 ## How do I build a bot
 
-- Create a folder in the root (next to the fake bot)
-- Pick the name of the folder from the player list below
+- Create a folder in the `bots` folder (next to the fake bots)
+- Pick a name for your bot (You should have a list of names before hand so bots can target specific other bots)
 - Include an `index.js` file that exports below class
 - Run as many test rounds as you want to
 - Create PR on the day of each round
@@ -303,3 +310,8 @@ if( foreign-aid, assassination, stealing )
 else
 	do-the-thing
 ```
+
+## Development
+
+The game comes with it's own [test runner](./test/test.js) that runs through all(?) possible moves a bot can make.
+You can execute the test runner via `yarn test:code`.

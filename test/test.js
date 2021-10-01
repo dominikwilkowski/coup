@@ -1,5 +1,5 @@
-const { style } = require('./helper.js');
-const { COUP } = require('./index.js');
+const { style } = require('../src/helper.js');
+const { COUP } = require('../src/index.js');
 
 // defaults
 const makeBots = () => ({

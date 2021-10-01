@@ -1,5 +1,7 @@
+const path = require('path');
+
 let { ALLBOTS, CARDS, DECK, ACTIONS } = require('./constants.js');
-const { version } = require('./package.json');
+const { version } = require('../package.json');
 const { style } = require('./helper.js');
 
 // making clones so the bots don't break them
@@ -70,7 +72,8 @@ class COUP {
 	getBots(player) {
 		try {
 			this.ALLPLAYER.forEach((player) => {
-				const bot = require(`./${player}/index.js`);
+				const botPath = path.normalize(`${__dirname}/../bots/${player}/index.js`);
+				const bot = require(botPath);
 				this.BOTS[player] = new bot({ name: player });
 
 				if (
@@ -96,7 +99,7 @@ class COUP {
 				}
 			});
 		} catch (error) {
-			console.error(`Error in bot ${player}`);
+			console.error(`Error in bot ${player} at ${botPath}`);
 			console.error(error);
 			process.exit(1);
 		}
@@ -446,7 +449,7 @@ class COUP {
 		if (this.PLAYER[player].card1) lives++;
 		if (this.PLAYER[player].card2) lives++;
 
-		console.log(`${lives > 0 ? '💔' : '☠️'}  ${this.getAvatar(player)} has lost the ${style.yellow(lost)}`);
+		console.log(`${lives > 0 ? '💔' : '☠️ '}  ${this.getAvatar(player)} has lost the ${style.yellow(lost)}`);
 	}
 
 	penalty(player, reason) {
@@ -537,7 +540,7 @@ class COUP {
 					card: card,
 				});
 				console.log(
-					`↬  ${this.getAvatar(challengee)} put the ${style.yellow(card)} back in the deck and drew a new card`
+					`↬   ${this.getAvatar(challengee)} put the ${style.yellow(card)} back in the deck and drew a new card`
 				);
 
 				return 'done';
@@ -897,8 +900,8 @@ class LOOP {
 				this.LOG += style.red(`🛑  ${text}\n`);
 			}
 		};
-		console.info(`\nGame round started`);
-		console.info('\n🎉   WINNERS  🎉\n');
+		console.info(`\n${style.gray(`Game started with`)} ${style.cyan(this.ROUNDS)} ${style.gray('rounds')}`);
+		console.info(`\n🎉   ${style.bold('Board')}   🎉\n`);
 
 		this.displayScore(false);
 

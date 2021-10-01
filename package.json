@@ -2,20 +2,36 @@
 	"name": "coup-cli",
 	"version": "1.0.0",
 	"description": "The COUP game implemented in the CLI",
-	"main": "index.js",
+	"homepage": "https://github.com/dominikwilkowski/coup-cli",
 	"scripts": {
 		"test:format": "prettier --list-different \"**/*.{js,md,mdx,json,html}\"",
-		"test:code": "node test.js",
+		"test:code": "node test/test.js",
 		"test": "npm run test:format && npm run test:code",
 		"format": "prettier --write \"**/*.{js,md,mdx,json,html}\"",
-		"play": "node bin.js play",
-		"loop": "node bin.js loop"
+		"play": "node src/bin.js play",
+		"loop": "node src/bin.js loop"
 	},
+	"main": "./src/index.js",
 	"bin": {
-		"coup": "./bin.js"
+		"coup": "./src/bin.js"
 	},
-	"keywords": [],
-	"author": "",
+	"keywords": [
+		"cli",
+		"coup",
+		"game"
+	],
+	"author": {
+		"name": "Dominik Wilkowski",
+		"email": "Hi@Dominik-Wilkowski.com",
+		"url": "https://dominik-wilkowski.com/"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git://github.com/dominikwilkowski/coup-cli.git"
+	},
+	"bugs": {
+		"url": "https://github.com/dominikwilkowski/coup-cli/issues"
+	},
 	"licenses": [
 		{
 			"type": "GPL-3.0",
