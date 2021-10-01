@@ -3,7 +3,7 @@
 > This is a CLI implementation of the game of [COUP](http://gamegrumps.wikia.com/wiki/Coup).
 
 <p align="center">
-	<img width="765" src="assets/coup-cli.png">
+	<img width="764" src="assets/coup-cli.png">
 </p>
 
 This app is designed as a code challenge.
