@@ -1,0 +1,16 @@
+[package]
+name = "coup-cli"
+version = "0.1.0"
+edition = "2021"
+authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
+license = "GPL-3.0-or-later"
+description = "The COUP game implemented in the CLI"
+homepage = "https://github.com/dominikwilkowski/coup-cli"
+repository = "https://github.com/dominikwilkowski/coup-cli"
+documentation = "https://docs.rs/coup-cli/"
+keywords = ["game", "cli", "coup", "cards", "card game"]
+categories = ["command-line-interface", "game-engines", "game-development", "games", "visualization"]
+include = ["/assets", "/src", "!.DS_Store", "LICENSE"]
+
+[dependencies]
+rand = "0.8.5"
