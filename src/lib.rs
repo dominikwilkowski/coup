@@ -1,5 +1,11 @@
 use rand::{seq::SliceRandom, thread_rng};
 
+pub mod bot;
+pub mod static_bot;
+
+use crate::bot::Bot;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Card {
 	Duke,
 	Assassin,
@@ -8,30 +14,40 @@ pub enum Card {
 	Contessa,
 }
 
-pub struct Bot {
-	pub name: String,
-	pub coins: u8,
-	cards: Vec<Card>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Action {
+	Swapping { initiator: String },
+	Stealing { initiator: String, target: String },
+	ForeignAid { initiator: String },
+	Tax { initiator: String },
+	Assassination { initiator: String, target: String },
+	Income { initiator: String },
+	Coup { initiator: String, target: String },
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Challenge {
+	Swapping { initiator: String, target: String },
+	Stealing { initiator: String, target: String },
+	Tax { initiator: String, target: String },
+	Assassination { initiator: String, target: String },
+	BlockingForeignAid { initiator: String, target: String },
+	BlockingAssassination { initiator: String, target: String },
+	BlockingStealing { initiator: String, target: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CounterAction {
+	BlockingForeignAid { initiator: String, target: String },
+	BlockingAssassination { initiator: String, target: String },
+	BlockingStealing { initiator: String, target: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum History {
-	ActionSwapping { initiator: Bot },
-	ActionStealing { initiator: Bot, target: Bot },
-	ActionForeignAid { initiator: Bot },
-	ActionTax { initiator: Bot },
-	ActionAssassination { initiator: Bot, target: Bot },
-	ActionIncome { initiator: Bot },
-	ActionCoup { initiator: Bot, target: Bot },
-	ChallengeSwapping { initiator: Bot, target: Bot },
-	ChallengeStealing { initiator: Bot, target: Bot },
-	ChallengeTax { initiator: Bot, target: Bot },
-	ChallengeAssassination { initiator: Bot, target: Bot },
-	ChallengeBlockingForeignAid { initiator: Bot, target: Bot },
-	ChallengeBlockingAssassination { initiator: Bot, target: Bot },
-	ChallengeBlockingStealing { initiator: Bot, target: Bot },
-	CounterActionBlockingForeignAid { initiator: Bot, target: Bot },
-	CounterActionBlockingAssassination { initiator: Bot, target: Bot },
-	CounterActionBlockingStealing { initiator: Bot, target: Bot },
+	Action(Action),
+	Challenge(Challenge),
+	CounterAction(CounterAction),
 }
 
 pub struct Coup {
@@ -86,8 +102,15 @@ impl Coup {
 
 		// Shuffle all bots each round
 		self.bots.shuffle(&mut thread_rng());
+
+		// TODO: make sure you only pick 6 at a time for each round
 	}
 
-	pub fn _play(mut self) {}
-	pub fn _looping(mut self) {}
+	pub fn _play(mut self) {
+		todo!();
+	}
+
+	pub fn _looping(mut self) {
+		todo!();
+	}
 }

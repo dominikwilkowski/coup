@@ -14,27 +14,22 @@ Between each round you have time to make adjustments to your bot.
 
 ## How does this work?
 
-- [RULES](#rules)
+- [Rules](#rules)
 - [Scoring](#scoring)
 - [How to run the game](#how-to-run-the-game)
 - [How do I build a bot](#how-do-i-build-a-bot)
 - [How does the engine work](#how-does-the-engine-work)
 - [Development](#development)
 
-## RULES
+## Rules
 
-1. NodeJs only
-1. No dependencies
 1. No changes to engine
-1. Name folder appropriately (so you can target specific bots)
-1. No data sharing between games
-1. No access to other bots
+1. Name of bots don't change between rounds (so you can target specific bots)
+1. No data sharing between games within a round
+1. No file access to other bots
 1. No changing other bots
-1. No internet
-1. No js prototype changing
-1. Your code has to stay inside your bots folder
+1. No internet access
 1. Do not output to `stdout`
-1. At the beginning of each round you add PRs to the repo (we only merge on the day the round begins)
 
 ## Scoring
 
@@ -182,7 +177,7 @@ The class you have to export from your bot needs to include the below methods:
   - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards }`
   - returns: `{ action: <Action>, against: <Player> }`
 - `onChallengeActionRound`
-  - Called when another bot made an action and everyone get's to decide whether they want to challenge that action
+  - Called when another bot made an action and everyone gets to decide whether they want to challenge that action
   - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards, action, byWhom, toWhom }`
   - returns: `<Boolean>`
 - `onCounterAction`
@@ -190,7 +185,7 @@ The class you have to export from your bot needs to include the below methods:
   - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards, action, byWhom }`
   - returns: `<CounterAction>`
 - `onCounterActionRound`
-  - Called when a bot did a counter action and everyone get's to decided whether they want to challenge that counter action
+  - Called when a bot did a counter action and everyone gets to decided whether they want to challenge that counter action
   - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards, action, byWhom, toWhom, card, counterer }`
   - returns: `<Boolean>`
 - `onSwappingCards`
