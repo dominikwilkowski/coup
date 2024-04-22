@@ -139,11 +139,9 @@ impl Coup {
 
 impl fmt::Debug for Coup {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		// Check if the Alternate flag is set
 		if f.alternate() {
-			// Implement pretty printing for the Coup struct
 			writeln!(f, "Coup {{")?;
-			writeln!(f, "  bots: {:?}", self.bots)?;
+			writeln!(f, "  bots: {:#?}", self.bots)?;
 			writeln!(f, "  playing_bots: {:?}", self.playing_bots)?;
 			writeln!(f, "  deck: {:?}", self.deck)?;
 			writeln!(f, "  discard_pile: {:?}", self.discard_pile)?;
@@ -151,7 +149,6 @@ impl fmt::Debug for Coup {
 			writeln!(f, "  score: {:?}", self.score)?;
 			write!(f, "}}")
 		} else {
-			// Implement regular printing for the Coup struct
 			write!(
 				f,
 				"Coup {{ bots: {:?}, playing_bots: {:?}, deck: {:?}, discard_pile: {:?}, history: {:?}, score: {:?} }}",

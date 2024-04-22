@@ -19,6 +19,8 @@ impl Bot {
 	}
 }
 
+pub type OtherBots = Vec<(Box<dyn BotInterface>, u8)>;
+
 pub trait BotInterface {
 	fn get_name(&self) -> String;
 	fn get_coins(&self) -> u8;
@@ -29,7 +31,7 @@ pub trait BotInterface {
 	/// Called when it's your turn to decide what to do
 	fn on_turn(
 		&self,
-		_other_bots: Vec<Bot>,
+		_other_bots: OtherBots,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -43,7 +45,7 @@ pub trait BotInterface {
 	fn on_challenge_action_round(
 		&self,
 		_action: Action,
-		_other_bots: Vec<Bot>,
+		_other_bots: OtherBots,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -55,7 +57,7 @@ pub trait BotInterface {
 	fn on_counter_action(
 		&self,
 		_action: Action,
-		_other_bots: Vec<Bot>,
+		_other_bots: OtherBots,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -68,7 +70,7 @@ pub trait BotInterface {
 		&self,
 		_action: Action,
 		_counterer: String,
-		_other_bots: Vec<Bot>,
+		_other_bots: OtherBots,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -80,7 +82,7 @@ pub trait BotInterface {
 	fn on_swapping_cards(
 		&self,
 		_new_cards: Vec<Card>,
-		_other_bots: Vec<Bot>,
+		_other_bots: OtherBots,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -91,7 +93,7 @@ pub trait BotInterface {
 	/// Called when you lost a card and now must decide which one you want to lose
 	fn on_card_loss(
 		&self,
-		_other_bots: Vec<Bot>,
+		_other_bots: OtherBots,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -102,6 +104,33 @@ pub trait BotInterface {
 
 impl fmt::Debug for dyn BotInterface {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", self.get_name())
+		if f.alternate() {
+			writeln!(f, "Bot {{")?;
+			writeln!(f, "  name: {:?}", self.get_name())?;
+			writeln!(f, "  coins: {:?}", self.get_coins())?;
+			writeln!(f, "  cards: {:?}", self.get_cards())?;
+			write!(f, "}}")
+		} else {
+			write!(
+				f,
+				"Bot {{ name: {:?}, coins: {:?}, cards: {:?} }}",
+				self.get_name(),
+				self.get_coins(),
+				self.get_cards()
+			)
+		}
+	}
+}
+
+impl fmt::Display for dyn BotInterface {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(
+			f,
+			"\x1b[33m[\x1b[1m{}\x1b[0m \x1b[31m{}{}\x1b[33m 💰{}]\x1b[39m",
+			self.get_name(),
+			"♥".repeat(self.get_cards().len()),
+			"♡".repeat(2 - self.get_cards().len()),
+			self.get_coins()
+		)
 	}
 }

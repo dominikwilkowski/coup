@@ -1,6 +1,7 @@
 use coup_cli::{
+	bot::BotInterface,
 	bots::{HonestBot, StaticBot},
-	Coup,
+	Card, Coup,
 };
 
 fn main() {
@@ -12,4 +13,9 @@ fn main() {
 
 	coup_game.start_round();
 	println!("{:#?}", coup_game);
+
+	let mut bot =
+		Box::new(StaticBot::new(String::from("Bot 3"))) as Box<dyn BotInterface>;
+	bot.set_cards(vec![Card::Duke]);
+	println!("{}", bot);
 }
