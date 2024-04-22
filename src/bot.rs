@@ -19,7 +19,11 @@ impl Bot {
 	}
 }
 
-pub type OtherBots = Vec<(Box<dyn BotInterface>, u8)>;
+pub struct OtherBot {
+	pub name: String,
+	pub coins: u8,
+	pub cards: u8,
+}
 
 pub trait BotInterface {
 	fn get_name(&self) -> String;
@@ -31,13 +35,21 @@ pub trait BotInterface {
 	/// Called when it's your turn to decide what to do
 	fn on_turn(
 		&self,
-		_other_bots: OtherBots,
+		other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
 	) -> Action {
-		Action::Income {
-			initiator: self.get_name().clone(),
+		if self.get_coins() >= 10 {
+			let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
+			Action::Coup {
+				initiator: self.get_name().clone(),
+				target: target.name.clone(),
+			}
+		} else {
+			Action::Income {
+				initiator: self.get_name().clone(),
+			}
 		}
 	}
 
@@ -45,7 +57,7 @@ pub trait BotInterface {
 	fn on_challenge_action_round(
 		&self,
 		_action: Action,
-		_other_bots: OtherBots,
+		_other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -57,7 +69,7 @@ pub trait BotInterface {
 	fn on_counter_action(
 		&self,
 		_action: Action,
-		_other_bots: OtherBots,
+		_other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -70,7 +82,7 @@ pub trait BotInterface {
 		&self,
 		_action: Action,
 		_counterer: String,
-		_other_bots: OtherBots,
+		_other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -82,7 +94,7 @@ pub trait BotInterface {
 	fn on_swapping_cards(
 		&self,
 		_new_cards: Vec<Card>,
-		_other_bots: OtherBots,
+		_other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
@@ -93,7 +105,7 @@ pub trait BotInterface {
 	/// Called when you lost a card and now must decide which one you want to lose
 	fn on_card_loss(
 		&self,
-		_other_bots: OtherBots,
+		_other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,

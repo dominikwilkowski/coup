@@ -1,5 +1,5 @@
 use crate::{
-	bot::{BotInterface, OtherBots},
+	bot::{BotInterface, OtherBot},
 	Action, Card, History, Score,
 };
 
@@ -42,7 +42,7 @@ impl BotInterface for HonestBot {
 
 	fn on_turn(
 		&self,
-		_other_bots: OtherBots,
+		_other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
