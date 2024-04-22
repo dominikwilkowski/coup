@@ -1,5 +1,8 @@
-use crate::{Action, Card, CounterAction, History};
+use std::fmt;
 
+use crate::{Action, Card, CounterAction, History, Score};
+
+#[derive(Debug, Clone)]
 pub struct Bot {
 	pub name: String,
 	pub coins: u8,
@@ -19,7 +22,9 @@ impl Bot {
 pub trait BotInterface {
 	fn get_name(&self) -> String;
 	fn get_coins(&self) -> u8;
+	fn set_coins(&mut self, coins: u8);
 	fn get_cards(&self) -> Vec<Card>;
+	fn set_cards(&mut self, cards: Vec<Card>);
 
 	/// Called when it's your turn to decide what to do
 	fn on_turn(
@@ -27,6 +32,7 @@ pub trait BotInterface {
 		_other_bots: Vec<Bot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
+		_score: Score,
 	) -> Action {
 		Action::Income {
 			initiator: self.get_name().clone(),
@@ -40,6 +46,7 @@ pub trait BotInterface {
 		_other_bots: Vec<Bot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
+		_score: Score,
 	) -> bool {
 		false
 	}
@@ -51,6 +58,7 @@ pub trait BotInterface {
 		_other_bots: Vec<Bot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
+		_score: Score,
 	) -> Option<CounterAction> {
 		None
 	}
@@ -63,6 +71,7 @@ pub trait BotInterface {
 		_other_bots: Vec<Bot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
+		_score: Score,
 	) -> bool {
 		false
 	}
@@ -74,6 +83,7 @@ pub trait BotInterface {
 		_other_bots: Vec<Bot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
+		_score: Score,
 	) -> Option<Vec<Card>> {
 		None
 	}
@@ -84,7 +94,14 @@ pub trait BotInterface {
 		_other_bots: Vec<Bot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
+		_score: Score,
 	) -> Card {
 		self.get_cards().pop().unwrap()
+	}
+}
+
+impl fmt::Debug for dyn BotInterface {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", self.get_name())
 	}
 }
