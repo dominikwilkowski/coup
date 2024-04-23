@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::{Action, Card, CounterAction, History, Score};
+use crate::{Action, Card, Counter, History, Score};
 
 #[derive(Debug, Clone)]
 pub struct Bot {
@@ -54,6 +54,7 @@ pub trait BotInterface {
 	}
 
 	/// Called when another bot played an action and everyone gets to decide whether they want to challenge that action
+	/// [Action::Assassination], [Action::Swapping], [Action::Stealing] and [Action::Tax]
 	fn on_challenge_action_round(
 		&self,
 		_action: Action,
@@ -62,17 +63,14 @@ pub trait BotInterface {
 		false
 	}
 
-	/// Called when someone played something that can be countered with a card you may have: `Action::Assassination`, `Action::ForeignAid` and `Action::Stealing`
-	fn on_counter_action(
-		&self,
-		_action: Action,
-		_context: Context,
-	) -> Option<CounterAction> {
+	/// Called when someone played something that can be countered with a card you may have:
+	/// [Action::Assassination], [Action::ForeignAid], [Action::Stealing] and [Action::Tax]
+	fn on_counter(&self, _action: Action, _context: Context) -> Option<Counter> {
 		None
 	}
 
-	/// Called when a bot did a counter action and everyone gets to decided whether they want to challenge that counter action
-	fn on_counter_action_round(
+	/// Called when a bot played a counter. Now everyone gets to decided whether they want to challenge it
+	fn on_challenge_counter_round(
 		&self,
 		_action: Action,
 		_counterer: String,
