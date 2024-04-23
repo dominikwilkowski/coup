@@ -43,6 +43,19 @@ pub trait BotInterface {
 		Action::Income
 	}
 
+	/// Called when you have equal to or more than 10 coins and you must coup
+	/// You can use this method internally as well when you decide to coup on your own
+	fn on_auto_coup(
+		&self,
+		other_bots: Vec<OtherBot>,
+		_discard_pile: Vec<Card>,
+		_history: History,
+		_score: Score,
+	) -> String {
+		let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
+		target.name.clone()
+	}
+
 	/// Called when another bot played an action and everyone gets to decide whether they want to challenge that action
 	fn on_challenge_action_round(
 		&self,
@@ -55,7 +68,7 @@ pub trait BotInterface {
 		false
 	}
 
-	/// Called when someone does something that can be countered with a card: `Action::Assassination`, `Action::ForeignAid` and `Action::Stealing`
+	/// Called when someone played something that can be countered with a card you may have: `Action::Assassination`, `Action::ForeignAid` and `Action::Stealing`
 	fn on_counter_action(
 		&self,
 		_action: Action,

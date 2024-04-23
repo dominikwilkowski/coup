@@ -9,52 +9,50 @@ use crate::bot::BotInterface;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Card {
-	Duke,
-	Assassin,
 	Ambassador,
+	Assassin,
 	Captain,
 	Contessa,
+	Duke,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-	Swapping,
-	Stealing(String),
-	ForeignAid,
-	Tax,
 	Assassination(String),
-	Income,
 	Coup(String),
+	ForeignAid,
+	Swapping,
+	Income,
+	Stealing(String),
+	Tax,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CounterAction {
-	BlockingForeignAid,
 	BlockingAssassination,
+	BlockingForeignAid,
 	BlockingStealing,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum History {
-	ActionSwapping { initiator: String },
-	ActionStealing { initiator: String, target: String },
-	ActionForeignAid { initiator: String },
-	ActionTax { initiator: String },
 	ActionAssassination { initiator: String, target: String },
-	ActionIncome { initiator: String },
 	ActionCoup { initiator: String, target: String },
+	ActionForeignAid { initiator: String },
+	ActionSwapping { initiator: String },
+	ActionIncome { initiator: String },
+	ActionStealing { initiator: String, target: String },
 
+	ChallengeAssassination { initiator: String, target: String },
+	ChallengeForeignAid { initiator: String, target: String },
 	ChallengeSwapping { initiator: String, target: String },
 	ChallengeStealing { initiator: String, target: String },
 	ChallengeTax { initiator: String, target: String },
-	ChallengeAssassination { initiator: String, target: String },
-	ChallengeBlockingForeignAid { initiator: String, target: String },
-	ChallengeBlockingAssassination { initiator: String, target: String },
-	ChallengeBlockingStealing { initiator: String, target: String },
 
 	CounterActionBlockingForeignAid { initiator: String, target: String },
 	CounterActionBlockingAssassination { initiator: String, target: String },
-	CounterActionBlockingStealing { initiator: String, target: String },
+	CounterActionBlockingStealingAmbassador { initiator: String, target: String },
+	CounterActionBlockingStealingCaptain { initiator: String, target: String },
 }
 
 pub type Score = Vec<(String, u64)>;
@@ -69,7 +67,7 @@ pub struct Coup {
 }
 
 impl Coup {
-	/// Start a new Coup game by passing in all your bots here
+	/// Start a new Coup game by passing in all your bots in a Vec
 	pub fn new(bots: Vec<Box<dyn BotInterface>>) -> Self {
 		let score = bots.iter().map(|bot| (bot.get_name().clone(), 0)).collect();
 
