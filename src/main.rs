@@ -11,7 +11,7 @@ fn main() {
 		Box::new(StaticBot::new(String::from("Bot 3"))),
 	]);
 
-	coup_game.start_round();
+	coup_game.play();
 	println!("{:#?}", coup_game);
 
 	let mut bot =

@@ -64,6 +64,7 @@ pub struct Coup {
 	pub discard_pile: Vec<Card>,
 	pub history: Vec<History>,
 	pub score: Score,
+	pub turn: usize,
 }
 
 impl Coup {
@@ -78,18 +79,19 @@ impl Coup {
 			discard_pile: vec![],
 			history: vec![],
 			score,
+			turn: 0,
 		}
 	}
 
 	/// A public method to get a new deck
 	pub fn new_deck() -> Vec<Card> {
 		let mut deck = vec![
-			Card::Assassin,
-			Card::Assassin,
-			Card::Assassin,
 			Card::Ambassador,
 			Card::Ambassador,
 			Card::Ambassador,
+			Card::Assassin,
+			Card::Assassin,
+			Card::Assassin,
 			Card::Captain,
 			Card::Captain,
 			Card::Captain,
@@ -104,8 +106,31 @@ impl Coup {
 		deck
 	}
 
+	fn _get_score(&self) -> Score {
+		self
+			.playing_bots
+			.iter()
+			.map(|bot_index| {
+				let bot = &self.bots[*bot_index];
+				(bot.get_name().clone(), bot.get_cards().len() as u64)
+			})
+			.collect()
+	}
+
+	fn has_not_ended(&self) -> bool {
+		self
+			.playing_bots
+			.iter()
+			.filter(|bot_index| {
+				let bot = &self.bots[**bot_index];
+				bot.get_coins() > 0
+			})
+			.count()
+			> 1
+	}
+
 	/// Starting a round means we setup the table, give each bots their cards and coins
-	pub fn start_round(&mut self) {
+	pub fn play(&mut self) {
 		// A fresh deck
 		let mut deck = Coup::new_deck();
 
@@ -126,12 +151,23 @@ impl Coup {
 		self.playing_bots.shuffle(&mut thread_rng());
 		self.playing_bots.truncate(6);
 
-		// TODO: run play() in loop
+		// Let's play
+		self.round();
 	}
 
 	/// Play the game with the round that has been setup
-	pub fn _play(&mut self) {
-		todo!();
+	pub fn round(&mut self) {
+		while self.has_not_ended() {
+			// TODO
+			// Run &self.bots[self.playing_bots[self.turn]].on_turn()
+			// match on Actions
+			// challenge round through each bot by order of turn
+			// if challenge resolve and ask for counter challenge
+			// etc etc
+
+			// We move to the next turn
+			self.turn = if self.turn == 5 { 0 } else { self.turn + 1 };
+		}
 	}
 
 	#[allow(clippy::borrowed_box)]
