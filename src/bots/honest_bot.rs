@@ -1,6 +1,6 @@
 use crate::{
-	bot::{BotInterface, OtherBot},
-	Action, Card, History, Score,
+	bot::{BotInterface, Context},
+	Action, Card,
 };
 
 pub struct HonestBot {
@@ -40,18 +40,12 @@ impl BotInterface for HonestBot {
 		self.cards = cards;
 	}
 
-	fn on_turn(
-		&self,
-		other_bots: &[OtherBot],
-		_discard_pile: &[Card],
-		_history: &[History],
-		_score: &Score,
-	) -> Action {
-		if self.get_coins() >= 10 {
-			let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
-			Action::Coup(target.name.clone())
-		} else {
-			Action::Income
-		}
+	fn on_turn(&self, context: Context) -> Action {
+		// if self.get_coins() >= 10 {
+		let target = context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
+		Action::Coup(target.name.clone())
+		// } else {
+		// 	Action::Income
+		// }
 	}
 }

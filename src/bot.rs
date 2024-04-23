@@ -26,6 +26,14 @@ pub struct OtherBot {
 	pub cards: u8,
 }
 
+#[derive(Debug, Clone)]
+pub struct Context<'a> {
+	pub other_bots: &'a [OtherBot],
+	pub discard_pile: &'a [Card],
+	pub history: &'a [History],
+	pub score: &'a Score,
+}
+
 pub trait BotInterface {
 	fn get_name(&self) -> String;
 	fn get_coins(&self) -> u8;
@@ -34,26 +42,14 @@ pub trait BotInterface {
 	fn set_cards(&mut self, cards: Vec<Card>);
 
 	/// Called when it's your turn to decide what to do
-	fn on_turn(
-		&self,
-		_other_bots: &[OtherBot],
-		_discard_pile: &[Card],
-		_history: &[History],
-		_score: &Score,
-	) -> Action {
+	fn on_turn(&self, _context: Context) -> Action {
 		Action::Income
 	}
 
 	/// Called when you have equal to or more than 10 coins and must coup
 	/// You can use this method internally as well when you decide to coup on your own
-	fn on_auto_coup(
-		&self,
-		other_bots: &[OtherBot],
-		_discard_pile: &[Card],
-		_history: &[History],
-		_score: &Score,
-	) -> String {
-		let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
+	fn on_auto_coup(&self, context: Context) -> String {
+		let target = context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
 		target.name.clone()
 	}
 
@@ -61,10 +57,7 @@ pub trait BotInterface {
 	fn on_challenge_action_round(
 		&self,
 		_action: Action,
-		_other_bots: &[OtherBot],
-		_discard_pile: &[Card],
-		_history: &[History],
-		_score: &Score,
+		_context: Context,
 	) -> bool {
 		false
 	}
@@ -73,10 +66,7 @@ pub trait BotInterface {
 	fn on_counter_action(
 		&self,
 		_action: Action,
-		_other_bots: &[OtherBot],
-		_discard_pile: &[Card],
-		_history: &[History],
-		_score: &Score,
+		_context: Context,
 	) -> Option<CounterAction> {
 		None
 	}
@@ -86,10 +76,7 @@ pub trait BotInterface {
 		&self,
 		_action: Action,
 		_counterer: String,
-		_other_bots: &[OtherBot],
-		_discard_pile: &[Card],
-		_history: &[History],
-		_score: &Score,
+		_context: Context,
 	) -> bool {
 		false
 	}
@@ -98,22 +85,13 @@ pub trait BotInterface {
 	fn on_swapping_cards(
 		&self,
 		_new_cards: &[Card],
-		_other_bots: &[OtherBot],
-		_discard_pile: &[Card],
-		_history: &[History],
-		_score: &Score,
+		_context: Context,
 	) -> Option<Vec<Card>> {
 		None
 	}
 
 	/// Called when you lost a card and now must decide which one you want to lose
-	fn on_card_loss(
-		&self,
-		_other_bots: &[OtherBot],
-		_discard_pile: &[Card],
-		_history: &[History],
-		_score: &Score,
-	) -> Card {
+	fn on_card_loss(&self, _context: Context) -> Card {
 		self.get_cards().pop().unwrap()
 	}
 }

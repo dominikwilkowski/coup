@@ -5,7 +5,7 @@ use rand::{seq::SliceRandom, thread_rng};
 pub mod bot;
 pub mod bots;
 
-use crate::bot::{BotInterface, OtherBot};
+use crate::bot::{BotInterface, Context, OtherBot};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Card {
@@ -155,6 +155,12 @@ impl Coup {
 		self.game_loop();
 	}
 
+	#[allow(clippy::borrowed_box)]
+	fn get_bot_by_name(&self, name: String) -> &Box<dyn BotInterface> {
+		// TODO: return Option plus add penalty for bots who pass invalid names
+		self.bots.iter().find(|bot| bot.get_name() == name).unwrap()
+	}
+
 	fn get_other_bots(&self) -> Vec<OtherBot> {
 		self
 			.playing_bots
@@ -173,19 +179,10 @@ impl Coup {
 			.collect()
 	}
 
-	fn penalize_bot(
-		&mut self,
-		name: String,
-		reason: &str,
-		other_bots: &[OtherBot],
-		discard_pile: &[Card],
-		history: &[History],
-		score: &Score,
-	) {
+	fn penalize_bot(&mut self, name: String, reason: &str, context: Context) {
 		self.bots.iter_mut().for_each(|bot| {
 			if bot.get_name() == name {
-				let lost_card =
-					bot.on_card_loss(other_bots, discard_pile, history, score);
+				let lost_card = bot.on_card_loss(context.clone());
 
 				bot.set_cards(
 					bot
@@ -213,80 +210,27 @@ impl Coup {
 		let playing_bot_coins = playing_bot.get_coins();
 		let _playing_bot_cards = playing_bot.get_cards();
 
-		let other_bots = &self.get_other_bots();
-		let discard_pile = &self.discard_pile.clone();
-		let history = &self.history.clone();
-		let score = &self.score.clone();
+		let context = Context {
+			other_bots: &self.get_other_bots(),
+			discard_pile: &self.discard_pile.clone(),
+			history: &self.history.clone(),
+			score: &self.score.clone(),
+		};
 
 		while self.has_not_ended() {
-			let action = &self.bots[self.playing_bots[self.turn]].on_turn(
-				other_bots,
-				discard_pile,
-				history,
-				score,
-			);
+			let action =
+				&self.bots[self.playing_bots[self.turn]].on_turn(context.clone());
 
 			match action {
 				Action::Assassination(_target) => {
 					todo!()
 				},
-				Action::Coup(target) => {
-					if playing_bot_coins < 7 {
-						self.penalize_bot(
-							playing_bot_name.clone(),
-							"it tried to coup with insufficient funds",
-							other_bots,
-							discard_pile,
-							history,
-							score,
-						);
-					} else if self.target_not_found(target.clone()) {
-						self.penalize_bot(
-							playing_bot_name.clone(),
-							"it tried to coup an unknown bot",
-							other_bots,
-							discard_pile,
-							history,
-							score,
-						);
-					} else {
-						// Paying the fee
-						self.bots[self.playing_bots[self.turn]]
-							.set_coins(playing_bot_coins - 7);
-
-						// Taking a card from the target bot
-						let target_bot = self.get_bot_by_name(target.clone());
-						let target_bot_name = target_bot.get_name();
-
-						let lost_card =
-							target_bot.on_card_loss(other_bots, discard_pile, history, score);
-						if !target_bot.get_cards().contains(&lost_card) {
-							// TODO: penalty!
-						} else {
-							self.bots.iter_mut().for_each(|bot| {
-								if bot.get_name() == target.clone() {
-									bot.set_cards(
-										bot
-											.get_cards()
-											.into_iter()
-											.filter(|card| lost_card != *card)
-											.collect(),
-									);
-								}
-							})
-						}
-
-						self.history.push(History::ActionCoup {
-							initiator: playing_bot_name.clone(),
-							target: target_bot_name,
-						});
-						println!(
-							"🃏  {} coups {}",
-							self.bots[self.playing_bots[self.turn]],
-							self.get_bot_by_name(target.clone())
-						);
-					}
-				},
+				Action::Coup(target) => self.action_couping(
+					target.clone(),
+					playing_bot_coins,
+					playing_bot_name,
+					context,
+				),
 				Action::ForeignAid => {
 					todo!()
 				},
@@ -294,18 +238,7 @@ impl Coup {
 					todo!()
 				},
 				Action::Income => {
-					// Adding the coin to the bot
-					self.bots[self.playing_bots[self.turn]]
-						.set_coins(playing_bot_coins + 1);
-
-					// Logging
-					self.history.push(History::ActionIncome {
-						initiator: playing_bot_name.clone(),
-					});
-					println!(
-						"🃏  {} takes \x1b[33ma coin\x1b[39m",
-						self.bots[self.playing_bots[self.turn]]
-					);
+					self.action_income(playing_bot_coins, playing_bot_name)
 				},
 				Action::Stealing(_target) => {
 					todo!()
@@ -328,10 +261,74 @@ impl Coup {
 		}
 	}
 
-	#[allow(clippy::borrowed_box)]
-	fn get_bot_by_name(&self, name: String) -> &Box<dyn BotInterface> {
-		// TODO: return Option plus add penalty for bots who pass invalid names
-		self.bots.iter().find(|bot| bot.get_name() == name).unwrap()
+	fn action_income(&mut self, playing_bot_coins: u8, playing_bot_name: String) {
+		// Adding the coin to the bot
+		self.bots[self.playing_bots[self.turn]].set_coins(playing_bot_coins + 1);
+
+		// Logging
+		self.history.push(History::ActionIncome {
+			initiator: playing_bot_name.clone(),
+		});
+		println!(
+			"🃏  {} takes \x1b[33ma coin\x1b[39m",
+			self.bots[self.playing_bots[self.turn]]
+		);
+	}
+
+	fn action_couping(
+		&mut self,
+		target: String,
+		playing_bot_coins: u8,
+		playing_bot_name: String,
+		context: Context,
+	) {
+		if playing_bot_coins < 7 {
+			self.penalize_bot(
+				playing_bot_name.clone(),
+				"it tried to coup with insufficient funds",
+				context,
+			);
+		} else if self.target_not_found(target.clone()) {
+			self.penalize_bot(
+				playing_bot_name.clone(),
+				"it tried to coup an unknown bot",
+				context,
+			);
+		} else {
+			// Paying the fee
+			self.bots[self.playing_bots[self.turn]].set_coins(playing_bot_coins - 7);
+
+			// Taking a card from the target bot
+			let target_bot = self.get_bot_by_name(target.clone());
+			let target_bot_name = target_bot.get_name();
+
+			let lost_card = target_bot.on_card_loss(context);
+			if !target_bot.get_cards().contains(&lost_card) {
+				// TODO: penalty!
+			} else {
+				self.bots.iter_mut().for_each(|bot| {
+					if bot.get_name() == target.clone() {
+						bot.set_cards(
+							bot
+								.get_cards()
+								.into_iter()
+								.filter(|card| lost_card != *card)
+								.collect(),
+						);
+					}
+				})
+			}
+
+			self.history.push(History::ActionCoup {
+				initiator: playing_bot_name.clone(),
+				target: target_bot_name,
+			});
+			println!(
+				"🃏  {} coups {}",
+				self.bots[self.playing_bots[self.turn]],
+				self.get_bot_by_name(target.clone())
+			);
+		}
 	}
 
 	/// Play n number of rounds and tally up the score in the CLI
