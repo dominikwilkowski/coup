@@ -167,6 +167,8 @@ impl Coup {
 		self.playing_bots.shuffle(&mut thread_rng());
 		self.playing_bots.truncate(6);
 
+		// TODO: add cfonts logo here
+
 		// Let's play
 		self.game_loop();
 	}
@@ -197,6 +199,10 @@ impl Coup {
 	fn penalize_bot(&mut self, name: String, reason: &str, context: Context) {
 		self.bots.iter_mut().for_each(|bot| {
 			if bot.get_name() == name {
+				println!(
+					"🚨  {} is being penalized because \x1b[33m{}\x1b[39m",
+					bot, reason
+				);
 				let lost_card = bot.on_card_loss(context.clone());
 
 				bot.set_cards(
@@ -207,8 +213,14 @@ impl Coup {
 						.collect(),
 				);
 				println!(
-					"🚨  {} was penalized because \x1b[33m{}\x1b[39m",
-					bot, reason
+					"{}  {} has lost the \x1b[33m{:?}\x1b[39m",
+					if bot.get_cards().is_empty() {
+						"☠️ "
+					} else {
+						"💔"
+					},
+					bot,
+					lost_card
 				);
 			}
 		});
@@ -336,10 +348,24 @@ impl Coup {
 				},
 			}
 
+			// Let's filter out all dead bots
+			self.playing_bots = self
+				.playing_bots
+				.iter()
+				.filter(|bot_index| !self.bots[**bot_index].get_cards().is_empty())
+				.copied()
+				.collect::<Vec<usize>>();
+
 			// We move to the next turn
-			self.turn = if self.turn == 5 { 0 } else { self.turn + 1 };
-			break; // TODO: remove me
+			self.turn = if self.turn == self.playing_bots.len() - 1 {
+				0
+			} else {
+				self.turn + 1
+			};
 		}
+
+		let winner = &self.bots[self.playing_bots[0]];
+		println!("\nThe winner is {}", winner);
 	}
 
 	fn action_income(&mut self, playing_bot_coins: u8, playing_bot_name: String) {
