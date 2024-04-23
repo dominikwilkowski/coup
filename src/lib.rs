@@ -81,6 +81,7 @@ pub struct Coup {
 	pub history: Vec<History>,
 	pub score: Score,
 	pub turn: usize,
+	pub moves: usize,
 }
 
 impl Coup {
@@ -96,6 +97,7 @@ impl Coup {
 			history: vec![],
 			score,
 			turn: 0,
+			moves: 0,
 		}
 	}
 
@@ -167,6 +169,9 @@ impl Coup {
 		self.playing_bots.shuffle(&mut thread_rng());
 		self.playing_bots.truncate(6);
 
+		self.turn = 0;
+		self.moves = 0;
+
 		// TODO: add cfonts logo here
 
 		// Let's play
@@ -233,6 +238,7 @@ impl Coup {
 	/// Play the game with the round that has been setup
 	pub fn game_loop(&mut self) {
 		while self.has_not_ended() {
+			self.moves += 1;
 			let playing_bot = &self.bots[self.playing_bots[self.turn]];
 			let playing_bot_name = playing_bot.get_name();
 			let playing_bot_coins = playing_bot.get_coins();
@@ -357,7 +363,7 @@ impl Coup {
 				.collect::<Vec<usize>>();
 
 			// We move to the next turn
-			self.turn = if self.turn == self.playing_bots.len() - 1 {
+			self.turn = if self.turn >= self.playing_bots.len() - 1 {
 				0
 			} else {
 				self.turn + 1
@@ -365,7 +371,7 @@ impl Coup {
 		}
 
 		let winner = &self.bots[self.playing_bots[0]];
-		println!("\nThe winner is {}", winner);
+		println!("\nThe winner is {} in {} moves", winner, self.moves);
 	}
 
 	fn action_income(&mut self, playing_bot_coins: u8, playing_bot_name: String) {
