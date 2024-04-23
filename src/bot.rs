@@ -35,25 +35,15 @@ pub trait BotInterface {
 	/// Called when it's your turn to decide what to do
 	fn on_turn(
 		&self,
-		other_bots: Vec<OtherBot>,
+		_other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
 	) -> Action {
-		if self.get_coins() >= 10 {
-			let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
-			Action::Coup {
-				initiator: self.get_name().clone(),
-				target: target.name.clone(),
-			}
-		} else {
-			Action::Income {
-				initiator: self.get_name().clone(),
-			}
-		}
+		Action::Income
 	}
 
-	/// Called when another bot made an action and everyone gets to decide whether they want to challenge that action
+	/// Called when another bot played an action and everyone gets to decide whether they want to challenge that action
 	fn on_challenge_action_round(
 		&self,
 		_action: Action,

@@ -18,38 +18,43 @@ pub enum Card {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-	Swapping { initiator: String },
-	Stealing { initiator: String, target: String },
-	ForeignAid { initiator: String },
-	Tax { initiator: String },
-	Assassination { initiator: String, target: String },
-	Income { initiator: String },
-	Coup { initiator: String, target: String },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Challenge {
-	Swapping { initiator: String, target: String },
-	Stealing { initiator: String, target: String },
-	Tax { initiator: String, target: String },
-	Assassination { initiator: String, target: String },
-	BlockingForeignAid { initiator: String, target: String },
-	BlockingAssassination { initiator: String, target: String },
-	BlockingStealing { initiator: String, target: String },
+	Swapping,
+	Stealing(String),
+	ForeignAid,
+	Tax,
+	Assassination(String),
+	Income,
+	Coup(String),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CounterAction {
-	BlockingForeignAid { initiator: String, target: String },
-	BlockingAssassination { initiator: String, target: String },
-	BlockingStealing { initiator: String, target: String },
+	BlockingForeignAid,
+	BlockingAssassination,
+	BlockingStealing,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum History {
-	Action(Action),
-	Challenge(Challenge),
-	CounterAction(CounterAction),
+	ActionSwapping { initiator: String },
+	ActionStealing { initiator: String, target: String },
+	ActionForeignAid { initiator: String },
+	ActionTax { initiator: String },
+	ActionAssassination { initiator: String, target: String },
+	ActionIncome { initiator: String },
+	ActionCoup { initiator: String, target: String },
+
+	ChallengeSwapping { initiator: String, target: String },
+	ChallengeStealing { initiator: String, target: String },
+	ChallengeTax { initiator: String, target: String },
+	ChallengeAssassination { initiator: String, target: String },
+	ChallengeBlockingForeignAid { initiator: String, target: String },
+	ChallengeBlockingAssassination { initiator: String, target: String },
+	ChallengeBlockingStealing { initiator: String, target: String },
+
+	CounterActionBlockingForeignAid { initiator: String, target: String },
+	CounterActionBlockingAssassination { initiator: String, target: String },
+	CounterActionBlockingStealing { initiator: String, target: String },
 }
 
 pub type Score = Vec<(String, u64)>;
@@ -129,6 +134,11 @@ impl Coup {
 	/// Play the game with the round that has been setup
 	pub fn _play(&mut self) {
 		todo!();
+	}
+
+	#[allow(clippy::borrowed_box)]
+	fn _get_bot_by_name(&self, name: String) -> &Box<dyn BotInterface> {
+		self.bots.iter().find(|bot| bot.get_name() == name).unwrap()
 	}
 
 	/// Play n number of rounds and tally up the score in the CLI

@@ -42,13 +42,16 @@ impl BotInterface for HonestBot {
 
 	fn on_turn(
 		&self,
-		_other_bots: Vec<OtherBot>,
+		other_bots: Vec<OtherBot>,
 		_discard_pile: Vec<Card>,
 		_history: History,
 		_score: Score,
 	) -> Action {
-		Action::Income {
-			initiator: self.get_name().clone(),
+		if self.get_coins() >= 10 {
+			let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
+			Action::Coup(target.name.clone())
+		} else {
+			Action::Income
 		}
 	}
 }
