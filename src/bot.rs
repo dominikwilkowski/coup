@@ -44,14 +44,14 @@ pub trait BotInterface {
 		Action::Income
 	}
 
-	/// Called when you have equal to or more than 10 coins and you must coup
+	/// Called when you have equal to or more than 10 coins and must coup
 	/// You can use this method internally as well when you decide to coup on your own
 	fn on_auto_coup(
 		&self,
 		other_bots: &[OtherBot],
 		_discard_pile: &[Card],
 		_history: &[History],
-		_score: Score,
+		_score: &Score,
 	) -> String {
 		let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
 		target.name.clone()
@@ -64,7 +64,7 @@ pub trait BotInterface {
 		_other_bots: &[OtherBot],
 		_discard_pile: &[Card],
 		_history: &[History],
-		_score: Score,
+		_score: &Score,
 	) -> bool {
 		false
 	}
@@ -76,7 +76,7 @@ pub trait BotInterface {
 		_other_bots: &[OtherBot],
 		_discard_pile: &[Card],
 		_history: &[History],
-		_score: Score,
+		_score: &Score,
 	) -> Option<CounterAction> {
 		None
 	}
@@ -89,7 +89,7 @@ pub trait BotInterface {
 		_other_bots: &[OtherBot],
 		_discard_pile: &[Card],
 		_history: &[History],
-		_score: Score,
+		_score: &Score,
 	) -> bool {
 		false
 	}
@@ -101,7 +101,7 @@ pub trait BotInterface {
 		_other_bots: &[OtherBot],
 		_discard_pile: &[Card],
 		_history: &[History],
-		_score: Score,
+		_score: &Score,
 	) -> Option<Vec<Card>> {
 		None
 	}
@@ -112,7 +112,7 @@ pub trait BotInterface {
 		_other_bots: &[OtherBot],
 		_discard_pile: &[Card],
 		_history: &[History],
-		_score: Score,
+		_score: &Score,
 	) -> Card {
 		self.get_cards().pop().unwrap()
 	}
