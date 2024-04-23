@@ -169,6 +169,7 @@ impl Coup {
 		self.playing_bots.shuffle(&mut thread_rng());
 		self.playing_bots.truncate(6);
 
+		self.discard_pile = vec![];
 		self.turn = 0;
 		self.moves = 0;
 
@@ -208,25 +209,46 @@ impl Coup {
 					"🚨  {} is being penalized because \x1b[33m{}\x1b[39m",
 					bot, reason
 				);
-				let lost_card = bot.on_card_loss(context.clone());
 
-				bot.set_cards(
-					bot
-						.get_cards()
-						.into_iter()
-						.filter(|card| lost_card != *card)
-						.collect(),
-				);
-				println!(
-					"{}  {} has lost the \x1b[33m{:?}\x1b[39m",
-					if bot.get_cards().is_empty() {
-						"☠️ "
-					} else {
-						"💔"
-					},
-					bot,
-					lost_card
-				);
+				let lost_card = bot.on_card_loss(context.clone());
+				if !bot.get_cards().contains(&lost_card) {
+					println!("🚨  {} is being penalized because \x1b[33mit discarded a card it didn't have\x1b[39m", bot);
+					let mut cards = bot.get_cards();
+
+					let card = cards.pop().unwrap();
+					let mut lost_cards = format!("{:?}", card);
+					self.discard_pile.push(card);
+
+					if !cards.is_empty() {
+						let card = cards.pop().unwrap();
+						lost_cards =
+							format!("{} and {:?}", lost_cards, card);
+						self.discard_pile.push(card);
+					}
+
+					bot.set_cards(vec![]);
+					println!("☠️   {} has lost the \x1b[33m{:?}\x1b[39m", bot, lost_cards);
+				} else {
+					bot.set_cards(
+						bot
+							.get_cards()
+							.into_iter()
+							.filter(|card| lost_card != *card)
+							.collect(),
+					);
+					self.discard_pile.push(lost_card);
+
+					println!(
+						"{}  {} has lost the \x1b[33m{:?}\x1b[39m",
+						if bot.get_cards().is_empty() {
+							"☠️ "
+						} else {
+							"💔"
+						},
+						bot,
+						lost_card
+					);
+				}
 			}
 		});
 	}
@@ -235,8 +257,7 @@ impl Coup {
 		self.bots.iter().filter(|bot| bot.get_name() == target).count() == 0
 	}
 
-	/// Play the game with the round that has been setup
-	pub fn game_loop(&mut self) {
+	fn game_loop(&mut self) {
 		while self.has_not_ended() {
 			self.moves += 1;
 			let playing_bot = &self.bots[self.playing_bots[self.turn]];
@@ -263,15 +284,15 @@ impl Coup {
 
 			match action {
 				Action::Assassination(_target) => {
-					// challenge round (aka: Do I believe you have this card?) bot.on_challenge_action_round
+					// challenge round (aka: Do I believe you have this card?) - bot.on_challenge_action_round
 					//   if challenge successful
 					//     self penalty
 					//   if challenge not successful
 					//     challenger penalty
 
-					// counter round (aka: do I have a card to block this action?) bot.on_counter
+					// counter round (aka: do I have a card to block this action?) - bot.on_counter
 					//   if counter
-					//     challenge round
+					//     challenge round - bot.on_challenge_counter_round
 					//       if challenge successful
 					//         counter penalty
 					//         self.action
@@ -290,9 +311,9 @@ impl Coup {
 					);
 				},
 				Action::ForeignAid => {
-					// counter round (aka: do I have a card to block this action?) bot.on_counter
+					// counter round (aka: do I have a card to block this action?) - bot.on_counter
 					//   if counter
-					//     challenge round
+					//     challenge round - bot.on_challenge_counter_round
 					//       if challenge successful
 					//         counter penalty
 					//         self.action
@@ -303,7 +324,7 @@ impl Coup {
 					todo!()
 				},
 				Action::Swapping => {
-					// challenge round (aka: Do I believe you have this card?) bot.on_challenge_action_round
+					// challenge round (aka: Do I believe you have this card?) - bot.on_challenge_action_round
 					//   if challenge successful
 					//     self penalty
 					//   if challenge not successful
@@ -315,15 +336,15 @@ impl Coup {
 					self.action_income(playing_bot_coins, playing_bot_name)
 				},
 				Action::Stealing(_target) => {
-					// challenge round (aka: Do I believe you have this card?) bot.on_challenge_action_round
+					// challenge round (aka: Do I believe you have this card?) - bot.on_challenge_action_round
 					//   if challenge successful
 					//     self penalty
 					//   if challenge not successful
 					//     challenger penalty
 
-					// counter round (aka: do I have a card to block this action?) bot.on_counter
+					// counter round (aka: do I have a card to block this action?) - bot.on_counter
 					//   if counter
-					//     challenge round
+					//     challenge round - bot.on_challenge_counter_round
 					//       if challenge successful
 					//         counter penalty
 					//         self.action
@@ -334,15 +355,15 @@ impl Coup {
 					todo!()
 				},
 				Action::Tax => {
-					// challenge round (aka: Do I believe you have this card?) bot.on_challenge_action_round
+					// challenge round (aka: Do I believe you have this card?) - bot.on_challenge_action_round
 					//   if challenge successful
 					//     self penalty
 					//   if challenge not successful
 					//     challenger penalty
 
-					// counter round (aka: do I have a card to block this action?) bot.on_counter
+					// counter round (aka: do I have a card to block this action?) - bot.on_counter
 					//   if counter
-					//     challenge round
+					//     challenge round - bot.on_challenge_counter_round
 					//       if challenge successful
 					//         counter penalty
 					//         self.action
@@ -418,13 +439,13 @@ impl Coup {
 			let lost_card = target_bot.on_card_loss(context.clone());
 			if !target_bot.get_cards().contains(&lost_card) {
 				self.penalize_bot(
-					playing_bot_name.clone(),
+					target_bot_name.clone(),
 					"it tried discard a card it didn't have",
 					context,
 				);
 			} else {
 				self.bots.iter_mut().for_each(|bot| {
-					if bot.get_name() == target.clone() {
+					if bot.get_name() == target {
 						bot.set_cards(
 							bot
 								.get_cards()
@@ -433,7 +454,8 @@ impl Coup {
 								.collect(),
 						);
 					}
-				})
+				});
+				self.discard_pile.push(lost_card);
 			}
 
 			// Logging
@@ -460,11 +482,11 @@ impl fmt::Debug for Coup {
 		if f.alternate() {
 			writeln!(f, "Coup {{")?;
 			writeln!(f, "  bots: {:#?}", self.bots)?;
-			writeln!(f, "  playing_bots: {:?}", self.playing_bots)?;
-			writeln!(f, "  deck: {:?}", self.deck)?;
-			writeln!(f, "  discard_pile: {:?}", self.discard_pile)?;
-			writeln!(f, "  history: {:?}", self.history)?;
-			writeln!(f, "  score: {:?}", self.score)?;
+			writeln!(f, "  playing_bots: {:#?}", self.playing_bots)?;
+			writeln!(f, "  deck: {:#?}", self.deck)?;
+			writeln!(f, "  discard_pile: {:#?}", self.discard_pile)?;
+			writeln!(f, "  history: {:#?}", self.history)?;
+			writeln!(f, "  score: {:#?}", self.score)?;
 			write!(f, "}}")
 		} else {
 			write!(
