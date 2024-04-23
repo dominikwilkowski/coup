@@ -5,7 +5,7 @@ use rand::{seq::SliceRandom, thread_rng};
 pub mod bot;
 pub mod bots;
 
-use crate::bot::BotInterface;
+use crate::bot::{BotInterface, OtherBot};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Card {
@@ -106,16 +106,16 @@ impl Coup {
 		deck
 	}
 
-	fn _get_score(&self) -> Score {
-		self
-			.playing_bots
-			.iter()
-			.map(|bot_index| {
-				let bot = &self.bots[*bot_index];
-				(bot.get_name().clone(), bot.get_cards().len() as u64)
-			})
-			.collect()
-	}
+	// fn _get_score(&self) -> Score {
+	// 	self
+	// 		.playing_bots
+	// 		.iter()
+	// 		.map(|bot_index| {
+	// 			let bot = &self.bots[*bot_index];
+	// 			(bot.get_name().clone(), bot.get_cards().len() as u64)
+	// 		})
+	// 		.collect()
+	// }
 
 	fn has_not_ended(&self) -> bool {
 		self
@@ -129,7 +129,7 @@ impl Coup {
 			> 1
 	}
 
-	/// Starting a round means we setup the table, give each bots their cards and coins
+	/// Starting a round which means we setup the table, give each bots their cards and coins
 	pub fn play(&mut self) {
 		// A fresh deck
 		let mut deck = Coup::new_deck();
@@ -152,12 +152,77 @@ impl Coup {
 		self.playing_bots.truncate(6);
 
 		// Let's play
-		self.round();
+		self.game_loop();
+	}
+
+	fn get_other_bots(&self) -> Vec<OtherBot> {
+		self
+			.playing_bots
+			.iter()
+			.map(|bot_index| {
+				let bot = &self.bots[*bot_index];
+				OtherBot {
+					name: bot.get_name(),
+					coins: bot.get_coins(),
+					cards: bot.get_cards().len() as u8,
+				}
+			})
+			.filter(|bot| {
+				bot.name != self.bots[self.playing_bots[self.turn]].get_name()
+			})
+			.collect()
 	}
 
 	/// Play the game with the round that has been setup
-	pub fn round(&mut self) {
+	pub fn game_loop(&mut self) {
+		let playing_bot = &self.bots[self.playing_bots[self.turn]];
+		let playing_bot_name = playing_bot.get_name();
+		let playing_bot_avatar = format!("{}", playing_bot);
+		let playing_bot_coins = playing_bot.get_coins();
+		let _playing_bot_cards = playing_bot.get_cards();
+
+		let other_bots = self.get_other_bots();
 		while self.has_not_ended() {
+			let action = &self.bots[self.playing_bots[self.turn]].on_turn(
+				&other_bots,
+				&self.discard_pile,
+				&self.history,
+				&self.score,
+			);
+
+			// TODO: check if action is legal
+
+			match action {
+				Action::Assassination(target) => {
+					let coins = playing_bot_coins;
+					self.bots[self.playing_bots[self.turn]].set_coins(coins + 1);
+
+					self.history.push(History::ActionAssassination {
+						initiator: playing_bot_name.clone(),
+						target: target.clone(),
+					});
+					println!("🃏  {} takes \x1b[33ma coin\x1b[39m", playing_bot_avatar);
+				},
+				Action::Coup(_target) => {
+					todo!()
+				},
+				Action::ForeignAid => {
+					todo!()
+				},
+				Action::Swapping => {
+					todo!()
+				},
+				Action::Income => {
+					todo!()
+				},
+				Action::Stealing(_target) => {
+					todo!()
+				},
+				Action::Tax => {
+					todo!()
+				},
+			}
+
 			// TODO
 			// Run &self.bots[self.playing_bots[self.turn]].on_turn()
 			// match on Actions

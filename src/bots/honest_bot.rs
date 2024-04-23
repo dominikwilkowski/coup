@@ -42,10 +42,10 @@ impl BotInterface for HonestBot {
 
 	fn on_turn(
 		&self,
-		other_bots: Vec<OtherBot>,
-		_discard_pile: Vec<Card>,
-		_history: History,
-		_score: Score,
+		other_bots: &[OtherBot],
+		_discard_pile: &[Card],
+		_history: &[History],
+		_score: &Score,
 	) -> Action {
 		if self.get_coins() >= 10 {
 			let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();

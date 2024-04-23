@@ -19,6 +19,7 @@ impl Bot {
 	}
 }
 
+#[derive(Debug, Clone)]
 pub struct OtherBot {
 	pub name: String,
 	pub coins: u8,
@@ -35,10 +36,10 @@ pub trait BotInterface {
 	/// Called when it's your turn to decide what to do
 	fn on_turn(
 		&self,
-		_other_bots: Vec<OtherBot>,
-		_discard_pile: Vec<Card>,
-		_history: History,
-		_score: Score,
+		_other_bots: &[OtherBot],
+		_discard_pile: &[Card],
+		_history: &[History],
+		_score: &Score,
 	) -> Action {
 		Action::Income
 	}
@@ -47,9 +48,9 @@ pub trait BotInterface {
 	/// You can use this method internally as well when you decide to coup on your own
 	fn on_auto_coup(
 		&self,
-		other_bots: Vec<OtherBot>,
-		_discard_pile: Vec<Card>,
-		_history: History,
+		other_bots: &[OtherBot],
+		_discard_pile: &[Card],
+		_history: &[History],
 		_score: Score,
 	) -> String {
 		let target = other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
@@ -60,9 +61,9 @@ pub trait BotInterface {
 	fn on_challenge_action_round(
 		&self,
 		_action: Action,
-		_other_bots: Vec<OtherBot>,
-		_discard_pile: Vec<Card>,
-		_history: History,
+		_other_bots: &[OtherBot],
+		_discard_pile: &[Card],
+		_history: &[History],
 		_score: Score,
 	) -> bool {
 		false
@@ -72,9 +73,9 @@ pub trait BotInterface {
 	fn on_counter_action(
 		&self,
 		_action: Action,
-		_other_bots: Vec<OtherBot>,
-		_discard_pile: Vec<Card>,
-		_history: History,
+		_other_bots: &[OtherBot],
+		_discard_pile: &[Card],
+		_history: &[History],
 		_score: Score,
 	) -> Option<CounterAction> {
 		None
@@ -85,9 +86,9 @@ pub trait BotInterface {
 		&self,
 		_action: Action,
 		_counterer: String,
-		_other_bots: Vec<OtherBot>,
-		_discard_pile: Vec<Card>,
-		_history: History,
+		_other_bots: &[OtherBot],
+		_discard_pile: &[Card],
+		_history: &[History],
 		_score: Score,
 	) -> bool {
 		false
@@ -96,10 +97,10 @@ pub trait BotInterface {
 	/// Called when you played your ambassador and now need to decide which cards you want to keep
 	fn on_swapping_cards(
 		&self,
-		_new_cards: Vec<Card>,
-		_other_bots: Vec<OtherBot>,
-		_discard_pile: Vec<Card>,
-		_history: History,
+		_new_cards: &[Card],
+		_other_bots: &[OtherBot],
+		_discard_pile: &[Card],
+		_history: &[History],
 		_score: Score,
 	) -> Option<Vec<Card>> {
 		None
@@ -108,9 +109,9 @@ pub trait BotInterface {
 	/// Called when you lost a card and now must decide which one you want to lose
 	fn on_card_loss(
 		&self,
-		_other_bots: Vec<OtherBot>,
-		_discard_pile: Vec<Card>,
-		_history: History,
+		_other_bots: &[OtherBot],
+		_discard_pile: &[Card],
+		_history: &[History],
 		_score: Score,
 	) -> Card {
 		self.get_cards().pop().unwrap()
