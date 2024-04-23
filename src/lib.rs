@@ -193,18 +193,50 @@ impl Coup {
 			// TODO: check if action is legal
 
 			match action {
-				Action::Assassination(target) => {
-					let coins = playing_bot_coins;
-					self.bots[self.playing_bots[self.turn]].set_coins(coins + 1);
-
-					self.history.push(History::ActionAssassination {
-						initiator: playing_bot_name.clone(),
-						target: target.clone(),
-					});
-					println!("🃏  {} takes \x1b[33ma coin\x1b[39m", playing_bot_avatar);
-				},
-				Action::Coup(_target) => {
+				Action::Assassination(_target) => {
 					todo!()
+				},
+				Action::Coup(target) => {
+					if playing_bot_coins < 7 {
+						// TODO: penalty
+					} else {
+						// Paying the fee
+						self.bots[self.playing_bots[self.turn]]
+							.set_coins(playing_bot_coins - 7);
+
+						// Taking a card from the target bot
+						let target_bot = self.get_bot_by_name(target.clone());
+						let target_bot_name = target_bot.get_name();
+						let target_bot_avatar = format!("{}", target_bot);
+
+						let lost_card = target_bot.on_card_loss(
+							&other_bots,
+							&self.discard_pile,
+							&self.history,
+							&self.score,
+						);
+						if !target_bot.get_cards().contains(&lost_card) {
+							// TODO: penalty!
+						} else {
+							self.bots.iter_mut().for_each(|bot| {
+								if bot.get_name() == target.clone() {
+									bot.set_cards(
+										bot
+											.get_cards()
+											.into_iter()
+											.filter(|card| lost_card != *card)
+											.collect(),
+									);
+								}
+							})
+						}
+
+						self.history.push(History::ActionCoup {
+							initiator: playing_bot_name.clone(),
+							target: target_bot_name,
+						});
+						println!("🃏  {} coups {}", playing_bot_avatar, target_bot_avatar);
+					}
 				},
 				Action::ForeignAid => {
 					todo!()
@@ -213,7 +245,15 @@ impl Coup {
 					todo!()
 				},
 				Action::Income => {
-					todo!()
+					// Adding the coin to the bot
+					self.bots[self.playing_bots[self.turn]]
+						.set_coins(playing_bot_coins + 1);
+
+					// Logging
+					self.history.push(History::ActionIncome {
+						initiator: playing_bot_name.clone(),
+					});
+					println!("🃏  {} takes \x1b[33ma coin\x1b[39m", playing_bot_avatar);
 				},
 				Action::Stealing(_target) => {
 					todo!()
@@ -232,11 +272,13 @@ impl Coup {
 
 			// We move to the next turn
 			self.turn = if self.turn == 5 { 0 } else { self.turn + 1 };
+			break;
 		}
 	}
 
 	#[allow(clippy::borrowed_box)]
-	fn _get_bot_by_name(&self, name: String) -> &Box<dyn BotInterface> {
+	fn get_bot_by_name(&self, name: String) -> &Box<dyn BotInterface> {
+		// TODO: return Option plus add penalty for bots who pass invalid names
 		self.bots.iter().find(|bot| bot.get_name() == name).unwrap()
 	}
 
