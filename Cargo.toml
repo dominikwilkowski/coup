@@ -8,7 +8,7 @@ description = "The COUP game implemented in the CLI"
 homepage = "https://github.com/dominikwilkowski/coup-cli"
 repository = "https://github.com/dominikwilkowski/coup-cli"
 documentation = "https://docs.rs/coup-cli/"
-keywords = ["game", "cli", "coup", "cards", "card game"]
+keywords = ["game", "cli", "coup", "cards", "cardgame"]
 categories = ["command-line-interface", "game-engines", "game-development", "games", "visualization"]
 include = ["/assets", "/src", "!.DS_Store", "LICENSE"]
 
