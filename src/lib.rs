@@ -493,11 +493,13 @@ impl Coup {
 /// The debug trait has been implemented to support both format and alternate
 /// format which means you can print a game instance with:
 /// ```rust
+/// # use coup::Coup;
 /// let mut my_coup = Coup::new(vec![]);
 /// println!("{:?}", my_coup);
 /// ```
 /// and
 /// ```rust
+/// # use coup::Coup;
 /// let mut my_coup = Coup::new(vec![]);
 /// println!("{:#?}", my_coup);
 /// ```

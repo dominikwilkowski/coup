@@ -4,12 +4,7 @@ use std::fmt;
 
 use crate::{Action, Card, Counter, History, Score};
 
-/// A bot struct requires three public fields:
-/// ```rust
-/// pub name: String,
-/// pub coins: u8,
-/// pub cards: Vec<Card>,
-/// ```
+/// A bot struct can be used to implement the [BotInterface] trait
 #[derive(Debug, Clone)]
 pub struct Bot {
 	pub name: String,
@@ -121,6 +116,7 @@ pub trait BotInterface {
 /// The debug trait has been implemented to support both format and alternate
 /// format which means you can print a bot instance with:
 /// ```rust
+/// # use coup::{bot::BotInterface, bots::StaticBot};
 /// let mut bot = Box::new(StaticBot::new(String::from("My static bot"))) as Box<dyn BotInterface>;
 /// println!("{:?}", bot);
 /// // Bot { name: "My static bot", coins: 2, cards: [] }
@@ -156,6 +152,7 @@ impl fmt::Debug for dyn BotInterface {
 /// The display trait has been implemented which means you can print the avatar
 /// of a bot instance with:
 /// ```rust
+/// # use coup::{bot::BotInterface, bots::StaticBot};
 /// let mut bot = Box::new(StaticBot::new(String::from("My static bot"))) as Box<dyn BotInterface>;
 /// println!("{}", bot);
 /// // [My static bot ♡♡ 💰2]
