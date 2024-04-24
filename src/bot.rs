@@ -1,7 +1,15 @@
+//! The bot trait [BotInterface] and a couple types that help with the bot implementation
+
 use std::fmt;
 
 use crate::{Action, Card, Counter, History, Score};
 
+/// A bot struct requires three public fields:
+/// ```rust
+/// pub name: String,
+/// pub coins: u8,
+/// pub cards: Vec<Card>,
+/// ```
 #[derive(Debug, Clone)]
 pub struct Bot {
 	pub name: String,
@@ -19,21 +27,37 @@ impl Bot {
 	}
 }
 
+/// A type to describe other bots still in the game
 #[derive(Debug, Clone)]
 pub struct OtherBot {
+	/// The name of the bot used to identify it in [Action] and [Counter]
 	pub name: String,
+	/// The amount of coins this bot has
 	pub coins: u8,
+	/// The amount of [Card] this bot still have
 	pub cards: u8,
 }
 
+/// The context struct is what is passed into each of the [BotInterface] methods
+/// as arguments so the bot knows the context of the current move
 #[derive(Debug, Clone)]
 pub struct Context<'a> {
+	/// A list of all other bots minus the yourself
 	pub other_bots: &'a [OtherBot],
+	/// A list of all discarded [Card] so far in the game
 	pub discard_pile: &'a [Card],
+	/// A list of each events that have happened in this game so far
 	pub history: &'a [History],
+	/// The current score of the game
 	pub score: &'a Score,
 }
 
+/// The BotInterface trait is what drives your bot.
+/// You need to store a couple things for yourself which is what the getter and
+/// setter methods are for and then implement each method below that defines
+/// the behavior of your bot.
+/// The default implementation is a static implementation of a bot like the
+/// pre-build [crate::bots::StaticBot].
 pub trait BotInterface {
 	fn get_name(&self) -> String;
 	fn get_coins(&self) -> u8;
@@ -94,6 +118,21 @@ pub trait BotInterface {
 	}
 }
 
+/// The debug trait has been implemented to support both format and alternate
+/// format which means you can print a bot instance with:
+/// ```rust
+/// let mut bot = Box::new(StaticBot::new(String::from("My static bot"))) as Box<dyn BotInterface>;
+/// println!("{:?}", bot);
+/// // Bot { name: "My static bot", coins: 2, cards: [] }
+///
+/// // or
+/// println!("{:#?}", bot);
+/// // Bot {
+/// //   name: "My static bot"
+/// //   coins: 2
+/// //   cards: []
+/// // }
+/// ```
 impl fmt::Debug for dyn BotInterface {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		if f.alternate() {
@@ -113,6 +152,14 @@ impl fmt::Debug for dyn BotInterface {
 		}
 	}
 }
+
+/// The display trait has been implemented which means you can print the avatar
+/// of a bot instance with:
+/// ```rust
+/// let mut bot = Box::new(StaticBot::new(String::from("My static bot"))) as Box<dyn BotInterface>;
+/// println!("{}", bot);
+/// // [My static bot ♡♡ 💰2]
+/// ```
 
 impl fmt::Display for dyn BotInterface {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

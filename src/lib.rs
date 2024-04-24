@@ -7,12 +7,21 @@ pub mod bots;
 
 use crate::bot::{BotInterface, Context, OtherBot};
 
+/// One of the five cards you get in the game of Coup
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Card {
+	/// - [Action::Swapping] – Draw two character cards from the deck, choose which (if any) to exchange with your cards, then return two<br>
+	/// - [Counter::Stealing] – Block someone from stealing coins from you
 	Ambassador,
+	/// - [Action::Assassination] – Pay three coins and try to assassinate another player's character
 	Assassin,
+	/// - [Action::Stealing] – Take two coins from another player
+	/// - [Counter::Stealing] – Block someone from stealing coins from you
 	Captain,
+	/// - [Counter::Assassination] – Block an assassination attempt against yourself.
 	Contessa,
+	/// - [Action::Tax] – Take three coins from the treasury<br>
+	/// - [Counter::ForeignAid] – Block someone from taking foreign aid
 	Duke,
 }
 
@@ -42,14 +51,13 @@ pub enum Counter {
 	Assassination,
 	/// Block foreign aid with your [Card::Duke]
 	ForeignAid,
-	/// Block stealing with your [Card::Captain]
-	StealingCaptain,
-	/// Block stealing with your [Card::Ambassador]
-	StealingAmbassador,
-	/// block tax with your [Card::Duke]
+	/// Block stealing with your [Card::Captain] or your [Card::Ambassador]
+	Stealing,
+	/// Block tax with your [Card::Duke]
 	Tax,
 }
 
+/// A collection on all possible moves in the game for bots to analyze
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum History {
 	ActionAssassination { by: String, target: String },
@@ -71,17 +79,19 @@ pub enum History {
 	CounterTax { by: String, target: String },
 }
 
+/// The score of the game for all bots
 pub type Score = Vec<(String, u64)>;
 
+/// The Coup game engine
 pub struct Coup {
-	pub bots: Vec<Box<dyn BotInterface>>,
-	pub playing_bots: Vec<usize>,
-	pub deck: Vec<Card>,
-	pub discard_pile: Vec<Card>,
-	pub history: Vec<History>,
-	pub score: Score,
-	pub turn: usize,
-	pub moves: usize,
+	bots: Vec<Box<dyn BotInterface>>,
+	playing_bots: Vec<usize>,
+	deck: Vec<Card>,
+	discard_pile: Vec<Card>,
+	history: Vec<History>,
+	score: Score,
+	turn: usize,
+	moves: usize,
 }
 
 impl Coup {
@@ -101,7 +111,9 @@ impl Coup {
 		}
 	}
 
-	/// A public method to get a new deck
+	/// A public method to get a new deck.
+	/// This can be used by bots to make sure you get the same amount of cards as
+	/// the engine does
 	pub fn new_deck() -> Vec<Card> {
 		let mut deck = vec![
 			Card::Ambassador,
@@ -147,7 +159,8 @@ impl Coup {
 			> 1
 	}
 
-	/// Starting a round which means we setup the table, give each bots their cards and coins
+	/// Playing a game which means we setup the table, give each bots their cards
+	/// and coins and start the game loop
 	pub fn play(&mut self) {
 		// A fresh deck
 		let mut deck = Coup::new_deck();
@@ -477,6 +490,17 @@ impl Coup {
 	}
 }
 
+/// The debug trait has been implemented to support both format and alternate
+/// format which means you can print a game instance with:
+/// ```rust
+/// let mut my_coup = Coup::new(vec![]);
+/// println!("{:?}", my_coup);
+/// ```
+/// and
+/// ```rust
+/// let mut my_coup = Coup::new(vec![]);
+/// println!("{:#?}", my_coup);
+/// ```
 impl fmt::Debug for Coup {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		if f.alternate() {

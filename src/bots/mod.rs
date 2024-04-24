@@ -1,3 +1,5 @@
+//! A collection of pre-built bots to test with
+
 pub mod honest_bot;
 pub mod static_bot;
 // TODO: pub mod random_bot;

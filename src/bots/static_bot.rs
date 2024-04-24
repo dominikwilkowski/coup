@@ -1,5 +1,10 @@
+//! A static bot implementation for you to use to test your own bot with.
+
 use crate::{bot::BotInterface, Card};
 
+/// The static bot only takes [crate::Action::Income] on turns and eventually is forced
+/// by the engine to coup another bot. It won't challenge, counter or act on its
+/// own cards at all.
 pub struct StaticBot {
 	pub name: String,
 	pub coins: u8,

@@ -1,13 +1,14 @@
-use coup_cli::{
+use coup::{
 	bots::{HonestBot, StaticBot},
 	Coup,
 };
 
 fn main() {
 	let mut coup_game = Coup::new(vec![
-		Box::new(StaticBot::new(String::from("Bot 1"))),
-		Box::new(HonestBot::new(String::from("Bot 2"))),
-		Box::new(StaticBot::new(String::from("Bot 3"))),
+		Box::new(StaticBot::new(String::from("Charles"))),
+		Box::new(HonestBot::new(String::from("Tici"))),
+		Box::new(StaticBot::new(String::from("Novini"))),
+		Box::new(HonestBot::new(String::from("Dom"))),
 	]);
 
 	coup_game.play();
