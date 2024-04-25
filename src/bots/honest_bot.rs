@@ -46,7 +46,7 @@ impl BotInterface for HonestBot {
 		self.cards = cards;
 	}
 
-	fn on_turn(&self, context: Context) -> Action {
+	fn on_turn(&self, context: &Context) -> Action {
 		if self.get_coins() >= 10 {
 			let target =
 				context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();

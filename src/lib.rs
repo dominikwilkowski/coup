@@ -57,6 +57,11 @@ pub enum Counter {
 	Tax,
 }
 
+enum ChallengeRound {
+	Action,
+	Counter,
+}
+
 /// A collection on all possible moves in the game for bots to analyze
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum History {
@@ -215,7 +220,7 @@ impl Coup {
 			.collect()
 	}
 
-	fn penalize_bot(&mut self, name: String, reason: &str, context: Context) {
+	fn penalize_bot(&mut self, name: String, reason: &str, context: &Context) {
 		self.bots.iter_mut().for_each(|bot| {
 			if bot.get_name() == name {
 				println!(
@@ -223,7 +228,7 @@ impl Coup {
 					bot, reason
 				);
 
-				let lost_card = bot.on_card_loss(context.clone());
+				let lost_card = bot.on_card_loss(context);
 				if !bot.get_cards().contains(&lost_card) {
 					println!("🚨  {} is being penalized because \x1b[33mit discarded a card it didn't have\x1b[39m", bot);
 					let mut cards = bot.get_cards();
@@ -279,20 +284,20 @@ impl Coup {
 			let _playing_bot_cards = playing_bot.get_cards();
 
 			let context = Context {
-				other_bots: &self.get_other_bots(),
-				discard_pile: &self.discard_pile.clone(),
-				history: &self.history.clone(),
-				score: &self.score.clone(),
+				other_bots: self.get_other_bots(),
+				discard_pile: self.discard_pile.clone(),
+				history: self.history.clone(),
+				score: self.score.clone(),
 			};
 
 			// If you have 10 or more coins you must coup
 			let action = if self.bots[self.playing_bots[self.turn]].get_coins() >= 10
 			{
 				let target =
-					self.bots[self.playing_bots[self.turn]].on_auto_coup(context.clone());
+					self.bots[self.playing_bots[self.turn]].on_auto_coup(&context);
 				Action::Coup(target)
 			} else {
-				self.bots[self.playing_bots[self.turn]].on_turn(context.clone())
+				self.bots[self.playing_bots[self.turn]].on_turn(&context)
 			};
 
 			match action {
@@ -320,7 +325,7 @@ impl Coup {
 						target.clone(),
 						playing_bot_coins,
 						playing_bot_name,
-						context,
+						&context,
 					);
 				},
 				Action::ForeignAid => {
@@ -348,24 +353,83 @@ impl Coup {
 				Action::Income => {
 					self.action_income(playing_bot_coins, playing_bot_name)
 				},
-				Action::Stealing(_target) => {
-					// challenge round (aka: Do I believe you have this card?) - bot.on_challenge_action_round
-					//   if challenge successful
-					//     self penalty
-					//   if challenge not successful
-					//     challenger penalty
+				Action::Stealing(target_name) => {
+					// Does anyone want to challenge this action?
+					let challenger = self.challenge_round(
+						ChallengeRound::Action,
+						Action::Stealing(target_name.clone()),
+						playing_bot_name.clone(),
+					);
+					if let Some(challenger) = challenger {
+						// The bot "challenger"" is challenging this action
+						let success = self.resolve_challenge(
+							Action::Stealing(target_name.clone()),
+							playing_bot_name.clone(),
+							challenger.clone(),
+							&context,
+						);
+						if success {
+							// The challenge was successful so the player gets a penalty
+							self.penalize_bot(
+								playing_bot_name.clone(),
+								"it didn't have the Captain",
+								&context,
+							);
+						} else {
+							// The challenge was unsuccessful so the challenger gets a penalty
+							self.penalize_bot(
+								challenger,
+								&format!("{} really did have the captain so its challenge was unsuccessful", playing_bot_name),
+								&context,
+							);
 
-					// counter round (aka: do I have a card to block this action?) - bot.on_counter
-					//   if counter
-					//     challenge round - bot.on_challenge_counter_round
-					//       if challenge successful
-					//         counter penalty
-					//         self.action
-					//       if challenge not successful
-					//         challenger penalty
-					//   if no counter
-					//     self.action
-					todo!()
+							// Does the target want to counter this action?
+							let counter = self
+								.get_bot_by_name(target_name.clone())
+								.on_counter(Action::Stealing(target_name.clone()), &context);
+
+							if counter.is_some() {
+								// The bot target_name is countering the action so we now ask the table if anyone would like to challenge this counter
+								let counter_challenge = self.challenge_round(
+									ChallengeRound::Counter,
+									Action::Stealing(target_name.clone()),
+									target_name.clone(),
+								);
+
+								if let Some(counter_challenge) = counter_challenge {
+									// The bot counter_challenge.by is challenging this action
+									let success = self.resolve_counter(
+										Counter::Stealing,
+										target_name.clone(),
+										counter_challenge.clone(),
+										&context,
+									);
+									if success {
+										// The challenge was successful so the player who played the counter get a penalty
+										self.penalize_bot(
+											target_name,
+											"it didn't have the Captain or the Ambassador to block stealing",
+											&context,
+										);
+									} else {
+										// The challenge was unsuccessful so the player who challenged the counter get a penalty and the action is performed
+										self.penalize_bot(
+											counter_challenge,
+											&format!("{} really did have the Captain or Ambassador to block stealing so its challenge was unsuccessful", playing_bot_name),
+											&context,
+										);
+										self.action_stealing();
+									}
+								}
+							} else {
+								// No counter was played so the action is performed
+								self.action_stealing();
+							}
+						}
+					} else {
+						// No challenge was played so the action is performed
+						self.action_stealing();
+					}
 				},
 				Action::Tax => {
 					// challenge round (aka: Do I believe you have this card?) - bot.on_challenge_action_round
@@ -408,18 +472,46 @@ impl Coup {
 		println!("\nThe winner is {} in {} moves", winner, self.moves);
 	}
 
-	fn action_income(&mut self, playing_bot_coins: u8, playing_bot_name: String) {
-		// Adding the coin to the bot
-		self.bots[self.playing_bots[self.turn]].set_coins(playing_bot_coins + 1);
+	fn challenge_round(
+		&self,
+		_challenge_type: ChallengeRound,
+		_action: Action,
+		_by: String,
+	) -> Option<String> {
+		// console.log(`❓  ${this.getAvatar(challengee)} was challenged by ${this.getAvatar(challenger)}`);
+		todo!()
+	}
 
-		// Logging
-		self.history.push(History::ActionIncome {
-			by: playing_bot_name.clone(),
-		});
-		println!(
-			"🃏  {} takes \x1b[33ma coin\x1b[39m",
-			self.bots[self.playing_bots[self.turn]]
-		);
+	fn resolve_challenge(
+		&self,
+		_action: Action,
+		_player: String,
+		_challenger: String,
+		_context: &Context,
+	) -> bool {
+		todo!()
+	}
+
+	fn resolve_counter(
+		&self,
+		_counter: Counter,
+		_counterer: String,
+		_challenger: String,
+		_context: &Context,
+	) -> bool {
+		// console.log(`❓  ${this.getAvatar(player)} was counter actioned by ${this.getAvatar(counter.counterer)} with ${style.yellow(counter.counterAction)}`);
+		todo!()
+	}
+
+	/// Play n number of rounds and tally up the score in the CLI
+	pub fn _looping(&mut self) {
+		todo!();
+	}
+
+	// *******************************| Actions |****************************** //
+	fn _action_assassination(&self) {
+		// println!("🃏  {} plays a card", x);
+		todo!()
 	}
 
 	fn action_couping(
@@ -427,7 +519,7 @@ impl Coup {
 		target: String,
 		playing_bot_coins: u8,
 		playing_bot_name: String,
-		context: Context,
+		context: &Context,
 	) {
 		if playing_bot_coins < 7 {
 			self.penalize_bot(
@@ -449,7 +541,7 @@ impl Coup {
 			let target_bot = self.get_bot_by_name(target.clone());
 			let target_bot_name = target_bot.get_name();
 
-			let lost_card = target_bot.on_card_loss(context.clone());
+			let lost_card = target_bot.on_card_loss(context);
 			if !target_bot.get_cards().contains(&lost_card) {
 				self.penalize_bot(
 					target_bot_name.clone(),
@@ -484,9 +576,39 @@ impl Coup {
 		}
 	}
 
-	/// Play n number of rounds and tally up the score in the CLI
-	pub fn _looping(&mut self) {
-		todo!();
+	fn _action_foraign_aid(&self) {
+		// println!("🃏  {} plays a card", x);
+		todo!()
+	}
+
+	fn _action_swapping(&self) {
+		// println!("🃏  {} plays a card", x);
+		// console.log(`↬   ${this.getAvatar(challengee)} put the ${style.yellow(card)} back in the deck and drew a new card`);
+		todo!()
+	}
+
+	fn action_income(&mut self, playing_bot_coins: u8, playing_bot_name: String) {
+		// Adding the coin to the bot
+		self.bots[self.playing_bots[self.turn]].set_coins(playing_bot_coins + 1);
+
+		// Logging
+		self.history.push(History::ActionIncome {
+			by: playing_bot_name.clone(),
+		});
+		println!(
+			"🃏  {} takes \x1b[33ma coin\x1b[39m",
+			self.bots[self.playing_bots[self.turn]]
+		);
+	}
+
+	fn action_stealing(&self) {
+		// println!("🃏  {} plays a card", x);
+		todo!()
+	}
+
+	fn _action_tax(&self) {
+		// println!("🃏  {} plays a card", x);
+		todo!()
 	}
 }
 

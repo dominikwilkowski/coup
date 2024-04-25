@@ -2,7 +2,7 @@
 
 use std::fmt;
 
-use crate::{Action, Card, Counter, History, Score};
+use crate::{Action, Card, History, Score};
 
 /// A bot struct can be used to implement the [BotInterface] trait
 #[derive(Debug, Clone)]
@@ -36,15 +36,15 @@ pub struct OtherBot {
 /// The context struct is what is passed into each of the [BotInterface] methods
 /// as arguments so the bot knows the context of the current move
 #[derive(Debug, Clone)]
-pub struct Context<'a> {
+pub struct Context {
 	/// A list of all other bots minus the yourself
-	pub other_bots: &'a [OtherBot],
+	pub other_bots: Vec<OtherBot>,
 	/// A list of all discarded [Card] so far in the game
-	pub discard_pile: &'a [Card],
+	pub discard_pile: Vec<Card>,
 	/// A list of each events that have happened in this game so far
-	pub history: &'a [History],
+	pub history: Vec<History>,
 	/// The current score of the game
-	pub score: &'a Score,
+	pub score: Score,
 }
 
 /// The BotInterface trait is what drives your bot.
@@ -61,13 +61,13 @@ pub trait BotInterface {
 	fn set_cards(&mut self, cards: Vec<Card>);
 
 	/// Called when it's your turn to decide what to do
-	fn on_turn(&self, _context: Context) -> Action {
+	fn on_turn(&self, _context: &Context) -> Action {
 		Action::Income
 	}
 
 	/// Called when you have equal to or more than 10 coins and must coup
 	/// You can use this method internally as well when you decide to coup on your own
-	fn on_auto_coup(&self, context: Context) -> String {
+	fn on_auto_coup(&self, context: &Context) -> String {
 		let target = context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
 		target.name.clone()
 	}
@@ -77,14 +77,14 @@ pub trait BotInterface {
 	fn on_challenge_action_round(
 		&self,
 		_action: Action,
-		_context: Context,
+		_context: &Context,
 	) -> bool {
 		false
 	}
 
 	/// Called when someone played something that can be countered with a card you may have:
 	/// [Action::Assassination], [Action::ForeignAid], [Action::Stealing] and [Action::Tax]
-	fn on_counter(&self, _action: Action, _context: Context) -> Option<Counter> {
+	fn on_counter(&self, _action: Action, _context: &Context) -> Option<bool> {
 		None
 	}
 
@@ -93,7 +93,7 @@ pub trait BotInterface {
 		&self,
 		_action: Action,
 		_counterer: String,
-		_context: Context,
+		_context: &Context,
 	) -> bool {
 		false
 	}
@@ -102,13 +102,13 @@ pub trait BotInterface {
 	fn on_swapping_cards(
 		&self,
 		_new_cards: &[Card],
-		_context: Context,
+		_context: &Context,
 	) -> Option<Vec<Card>> {
 		None
 	}
 
 	/// Called when you lost a card and now must decide which one you want to lose
-	fn on_card_loss(&self, _context: Context) -> Card {
+	fn on_card_loss(&self, _context: &Context) -> Card {
 		self.get_cards().pop().unwrap()
 	}
 }
