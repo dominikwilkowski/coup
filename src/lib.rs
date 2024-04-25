@@ -269,7 +269,6 @@ impl Coup {
 			let playing_bot = &self.bots[self.playing_bots[self.turn]];
 			let playing_bot_name = playing_bot.get_name();
 			let playing_bot_coins = playing_bot.get_coins();
-			let _playing_bot_cards = playing_bot.get_cards();
 
 			let context = Context {
 				other_bots: self.get_other_bots(),
@@ -307,11 +306,11 @@ impl Coup {
 				},
 				Action::ForeignAid => {
 					// counter round only
-					todo!()
+					self.action_foraign_aid();
 				},
 				Action::Swapping => {
 					// challenge round only
-					todo!()
+					self.action_swapping()
 				},
 				Action::Income => {
 					self.action_income(playing_bot_coins, playing_bot_name)
@@ -326,7 +325,7 @@ impl Coup {
 				},
 				Action::Tax => {
 					// challenge round only
-					todo!()
+					self.action_tax()
 				},
 			}
 
@@ -729,7 +728,7 @@ impl Coup {
 			// self.get_bot_by_name(target.clone())
 		));
 		// Self::log(format_args!("🃏  {} plays a card", x));
-		// todo!()
+		// TODO
 	}
 
 	fn action_couping(
@@ -771,14 +770,16 @@ impl Coup {
 		}
 	}
 
-	fn _action_foraign_aid(&self) {
+	fn action_foraign_aid(&self) {
 		// Self::log(format_args!("🃏  {} plays a card", x));
+		// TODO
 		todo!()
 	}
 
-	fn _action_swapping(&self) {
+	fn action_swapping(&self) {
 		// Self::log(format_args!("🃏  {} plays a card", x));
 		// console.log(`↬   ${this.getAvatar(challengee)} put the ${style.yellow(card)} back in the deck and drew a new card`);
+		// TODO
 		todo!()
 	}
 
@@ -798,11 +799,13 @@ impl Coup {
 
 	fn action_stealing(&self) {
 		// Self::log(format_args!("🃏  {} plays a card", x));
+		// TODO
 		todo!()
 	}
 
-	fn _action_tax(&self) {
+	fn action_tax(&self) {
 		// Self::log(format_args!("🃏  {} plays a card", x));
+		// TODO
 		todo!()
 	}
 }
