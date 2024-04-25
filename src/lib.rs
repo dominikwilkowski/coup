@@ -138,49 +138,27 @@ impl Coup {
 		deck
 	}
 
-	// fn _get_score(&self) -> Score {
-	// 	self
-	// 		.playing_bots
-	// 		.iter()
-	// 		.map(|bot_index| {
-	// 			let bot = &self.bots[*bot_index];
-	// 			(bot.get_name().clone(), bot.get_cards().len() as u64)
-	// 		})
-	// 		.collect()
-	// }
-
-	fn has_not_ended(&self) -> bool {
-		self
-			.playing_bots
-			.iter()
-			.filter(|bot_index| {
-				let bot = &self.bots[**bot_index];
-				bot.get_coins() > 0
-			})
-			.count()
-			> 1
-	}
-
 	fn setup(&mut self) {
 		// A fresh deck
 		let mut deck = Coup::new_deck();
 
-		// All bots get cards, coins and are referenced in our list of playing bots
+		// Put the index of all bots into play so we can shuffle them later
 		self.playing_bots.clear();
-		for (index, bot) in self.bots.iter_mut().enumerate() {
-			let new_cards = vec![deck.pop().unwrap(), deck.pop().unwrap()];
-			bot.set_cards(new_cards);
-
-			// Add all bots to this round to be later shuffled and truncated
+		for index in 0..std::cmp::min(self.bots.len(), 6) {
 			self.playing_bots.push(index);
-
-			bot.set_coins(2);
 		}
-		self.deck = deck;
 
 		// Shuffle all bots each round and limit them to the max players per game
 		self.playing_bots.shuffle(&mut thread_rng());
 		self.playing_bots.truncate(6);
+
+		// Give all playing bots cards and coins
+		for bot in self.playing_bots.iter() {
+			let new_cards = vec![deck.pop().unwrap(), deck.pop().unwrap()];
+			self.bots[*bot].set_cards(new_cards);
+			self.bots[*bot].set_coins(2);
+		}
+		self.deck = deck;
 
 		self.discard_pile = vec![];
 		self.turn = 0;
@@ -286,7 +264,7 @@ impl Coup {
 	}
 
 	fn game_loop(&mut self) {
-		while self.has_not_ended() {
+		while self.playing_bots.len() > 1 {
 			self.moves += 1;
 			let playing_bot = &self.bots[self.playing_bots[self.turn]];
 			let playing_bot_name = playing_bot.get_name();
@@ -366,7 +344,6 @@ impl Coup {
 			} else {
 				self.turn + 1
 			};
-			println!("{:?}", self.turn); // TODO: remove me
 		}
 
 		let winner = &self.bots[self.playing_bots[0]];
@@ -870,12 +847,290 @@ mod tests {
 	use crate::bots::StaticBot;
 
 	#[test]
-	fn test_swap_card() {
-		let player1 = StaticBot::new(String::from("Player 1"));
-		let player2 = StaticBot::new(String::from("Player 2"));
+	fn test_new() {
+		let coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+
+		assert_eq!(coup.bots[0].get_cards(), vec![]);
+		assert_eq!(coup.bots[1].get_cards(), vec![]);
+		assert_eq!(coup.playing_bots, vec![]);
+		assert_eq!(coup.deck, vec![]);
+		assert_eq!(coup.discard_pile, vec![]);
+		assert_eq!(coup.history, vec![]);
+		assert_eq!(
+			coup.score,
+			vec![(String::from("Player 1"), 0), (String::from("Player 2"), 0)]
+		);
+		assert_eq!(coup.turn, 0);
+		assert_eq!(coup.moves, 0);
+	}
+
+	#[test]
+	fn test_new_deck() {
+		let deck = Coup::new_deck();
+		assert_eq!(deck.len(), 15);
+		assert_eq!(
+			deck.iter().filter(|&card| card == &Card::Ambassador).count(),
+			3
+		);
+		assert_eq!(deck.iter().filter(|&card| card == &Card::Assassin).count(), 3);
+		assert_eq!(deck.iter().filter(|&card| card == &Card::Captain).count(), 3);
+		assert_eq!(deck.iter().filter(|&card| card == &Card::Contessa).count(), 3);
+		assert_eq!(deck.iter().filter(|&card| card == &Card::Duke).count(), 3);
+	}
+
+	#[test]
+	fn test_setup() {
 		let mut coup = Coup::new(vec![
-			Box::new(player1) as Box<dyn BotInterface>,
-			Box::new(player2) as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 3")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 4")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 5")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 6")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 7")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 8")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		assert_eq!(coup.bots[0].get_cards().len(), 2);
+		assert_eq!(coup.bots[0].get_coins(), 2);
+		assert_eq!(coup.bots[1].get_cards().len(), 2);
+		assert_eq!(coup.bots[1].get_coins(), 2);
+		assert_eq!(coup.playing_bots.len(), 6);
+		assert_eq!(coup.deck.len(), 3);
+		assert_eq!(coup.discard_pile, vec![]);
+		assert_eq!(coup.turn, 0);
+		assert_eq!(coup.moves, 0);
+	}
+
+	#[test]
+	fn test_get_bot_by_name() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		assert_eq!(
+			coup.get_bot_by_name(String::from("Player 2")).get_name(),
+			String::from("Player 2")
+		);
+		assert_eq!(
+			coup.get_bot_by_name(String::from("Player 1")).get_name(),
+			String::from("Player 1")
+		);
+	}
+
+	#[test]
+	fn test_get_other_bots() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 3")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 4")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 5")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		coup.playing_bots = vec![0, 1, 2, 3, 4];
+		assert!(!coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 1"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 2"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 3"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 4"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 5"),
+			coins: 2,
+			cards: 2
+		}));
+
+		coup.playing_bots = vec![4, 3, 2, 1, 0];
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 1"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 2"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 3"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 4"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(!coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 5"),
+			coins: 2,
+			cards: 2
+		}));
+
+		coup.turn = 2;
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 1"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 2"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(!coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 3"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 4"),
+			coins: 2,
+			cards: 2
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("Player 5"),
+			coins: 2,
+			cards: 2
+		}));
+	}
+
+	#[test]
+	fn test_card_loss() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		coup.bots[0].set_cards(vec![Card::Ambassador, Card::Duke]);
+		coup.bots[1].set_cards(vec![Card::Assassin, Card::Captain]);
+
+		coup.card_loss(
+			String::from("Player 2"),
+			&Context {
+				other_bots: coup.get_other_bots(),
+				discard_pile: vec![],
+				history: vec![],
+				score: vec![],
+			},
+		);
+
+		assert_eq!(coup.bots[0].get_cards(), vec![Card::Ambassador, Card::Duke]);
+		assert_eq!(coup.bots[1].get_cards(), vec![Card::Assassin]);
+		assert_eq!(coup.discard_pile, vec![Card::Captain]);
+	}
+
+	#[test]
+	fn test_card_loss_faulty_bot() {
+		struct TestBot {
+			pub name: String,
+			pub coins: u8,
+			pub cards: Vec<Card>,
+		}
+		impl TestBot {
+			pub fn new(name: String) -> Self {
+				Self {
+					name,
+					coins: 2,
+					cards: vec![],
+				}
+			}
+		}
+		impl BotInterface for TestBot {
+			fn get_name(&self) -> String {
+				self.name.clone()
+			}
+			fn get_coins(&self) -> u8 {
+				self.coins
+			}
+			fn set_coins(&mut self, coins: u8) {
+				self.coins = coins;
+			}
+			fn get_cards(&self) -> Vec<Card> {
+				(*self.cards).to_vec()
+			}
+			fn set_cards(&mut self, cards: Vec<Card>) {
+				self.cards = cards;
+			}
+			fn on_card_loss(&self, _context: &Context) -> Card {
+				Card::Duke
+			}
+		}
+
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(TestBot::new(String::from("Player 2"))) as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		coup.bots[0].set_cards(vec![Card::Ambassador, Card::Duke]);
+		coup.bots[1].set_cards(vec![Card::Assassin, Card::Captain]);
+
+		coup.card_loss(
+			String::from("Player 2"),
+			&Context {
+				other_bots: coup.get_other_bots(),
+				discard_pile: vec![],
+				history: vec![],
+				score: vec![],
+			},
+		);
+
+		assert_eq!(coup.bots[0].get_cards(), vec![Card::Ambassador, Card::Duke]);
+		assert_eq!(coup.bots[1].get_cards(), vec![]);
+		assert_eq!(coup.discard_pile, vec![Card::Captain, Card::Assassin]);
+	}
+
+	#[test]
+	fn test_swap_card() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
 		]);
 		coup.setup();
 

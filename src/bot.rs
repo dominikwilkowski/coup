@@ -23,7 +23,7 @@ impl Bot {
 }
 
 /// A type to describe other bots still in the game
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct OtherBot {
 	/// The name of the bot used to identify it in [Action] and [Counter]
 	pub name: String,
