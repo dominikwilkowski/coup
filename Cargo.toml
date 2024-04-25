@@ -1,6 +1,6 @@
 [package]
 name = "coup"
-version = "0.0.1"
+version = "1.0.0"
 edition = "2021"
 authors = ["Dominik Wilkowski <Hi@Dominik-Wilkowski.com>"]
 license = "GPL-3.0-or-later"
