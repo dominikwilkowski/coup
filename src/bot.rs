@@ -76,23 +76,30 @@ pub trait BotInterface {
 	/// [Action::Assassination], [Action::Swapping], [Action::Stealing] and [Action::Tax]
 	fn on_challenge_action_round(
 		&self,
-		_action: Action,
+		_action: &Action,
+		_by: String,
 		_context: &Context,
 	) -> bool {
 		false
 	}
 
-	/// Called when someone played something that can be countered with a card you may have:
-	/// [Action::Assassination], [Action::ForeignAid], [Action::Stealing] and [Action::Tax]
-	fn on_counter(&self, _action: Action, _context: &Context) -> Option<bool> {
+	/// Called when someone played something that can be countered with a card you may have
+	/// [Action::Assassination], [Action::ForeignAid] and [Action::Stealing]
+	fn on_counter(
+		&self,
+		_action: &Action,
+		_by: String,
+		_context: &Context,
+	) -> Option<bool> {
 		None
 	}
 
 	/// Called when a bot played a counter. Now everyone gets to decided whether they want to challenge it
+	/// [Action::Assassination], [Action::ForeignAid] and [Action::Stealing]
 	fn on_challenge_counter_round(
 		&self,
-		_action: Action,
-		_counterer: String,
+		_action: &Action,
+		_by: String,
 		_context: &Context,
 	) -> bool {
 		false
