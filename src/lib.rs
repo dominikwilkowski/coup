@@ -101,6 +101,9 @@ pub struct Coup {
 impl Coup {
 	/// Start a new Coup game by passing in all your bots in a Vec
 	pub fn new(bots: Vec<Box<dyn BotInterface>>) -> Self {
+		// TODO:
+		// Change bot so it only has get_name method and we wrap it into a struct
+		// that stores coins and cards privately
 		let score = bots.iter().map(|bot| (bot.get_name().clone(), 0)).collect();
 
 		Self {
@@ -1180,6 +1183,9 @@ mod tests {
 		assert_eq!(coup.moves, 0);
 	}
 
+	// TODO: log
+	// TODO: play
+
 	#[test]
 	fn test_get_bot_by_name() {
 		let mut coup = Coup::new(vec![
@@ -1388,6 +1394,8 @@ mod tests {
 		assert_eq!(coup.discard_pile, vec![Card::Captain, Card::Assassin]);
 	}
 
+	// TODO: penalize_bot
+
 	#[test]
 	fn test_target_not_found() {
 		let mut coup = Coup::new(vec![
@@ -1402,6 +1410,13 @@ mod tests {
 		assert_eq!(coup.target_not_found(String::from("Player 3")), true);
 		assert_eq!(coup.target_not_found(String::from("Player 2")), false);
 	}
+
+	// TODO: _get_score
+	// TODO: game_loop
+	// TODO: challenge_and_counter_round
+	// TODO: challenge_round_only
+	// TODO: counter_round_only
+	// TODO: challenge_round
 
 	#[test]
 	fn test_swap_card() {
@@ -1429,6 +1444,11 @@ mod tests {
 		assert_eq!(coup.deck, vec![Card::Ambassador]);
 		assert_eq!(coup.discard_pile, vec![Card::Ambassador]);
 	}
+
+	// TODO: swap_card
+	// TODO: resolve_challenge
+	// TODO: resolve_counter
+	// TODO: _looping
 
 	// *******************************| Actions |****************************** //
 	#[test]
