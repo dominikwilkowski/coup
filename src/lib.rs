@@ -297,12 +297,7 @@ impl Coup {
 					);
 				},
 				Action::Coup(ref target) => {
-					self.action_couping(
-						target.clone(),
-						playing_bot_coins,
-						playing_bot_name,
-						&context,
-					);
+					self.action_couping(target.clone(), playing_bot_name, &context);
 				},
 				Action::ForeignAid => {
 					// counter round only
@@ -460,7 +455,11 @@ impl Coup {
 								context,
 							);
 							match action {
-								Action::Assassination(_) => self.action_assassination(),
+								Action::Assassination(_) => self.action_assassination(
+									target_name,
+									playing_bot_name,
+									context,
+								),
 								Action::Stealing(_) => self.action_stealing(),
 								Action::Coup(_)
 								| Action::ForeignAid
@@ -475,7 +474,9 @@ impl Coup {
 				} else {
 					// No counter was played so the action is performed
 					match action {
-						Action::Assassination(_) => self.action_assassination(),
+						Action::Assassination(_) => {
+							self.action_assassination(target_name, playing_bot_name, context)
+						},
 						Action::Stealing(_) => self.action_stealing(),
 						Action::Coup(_)
 						| Action::ForeignAid
@@ -490,7 +491,9 @@ impl Coup {
 		} else {
 			// No challenge was played so the action is performed
 			match action {
-				Action::Assassination(_) => self.action_assassination(),
+				Action::Assassination(_) => {
+					self.action_assassination(target_name, playing_bot_name, context)
+				},
 				Action::Stealing(_) => self.action_stealing(),
 				Action::Coup(_)
 				| Action::ForeignAid
@@ -721,27 +724,56 @@ impl Coup {
 	}
 
 	// *******************************| Actions |****************************** //
-	fn action_assassination(&self) {
-		Self::log(format_args!(
-			"🃏  {} assassinates",
-			self.bots[self.playing_bots[self.turn]],
-			// self.get_bot_by_name(target.clone())
-		));
-		// Self::log(format_args!("🃏  {} plays a card", x));
-		// TODO
+	fn action_assassination(
+		&mut self,
+		target: String,
+		playing_bot_name: String,
+		context: &Context,
+	) {
+		let playing_bot_coins = self.bots[self.playing_bots[self.turn]].get_coins();
+		if playing_bot_coins < 3 {
+			self.penalize_bot(
+				playing_bot_name.clone(),
+				"it tried to assassinate someone with insufficient funds",
+				context,
+			);
+		} else if self.target_not_found(target.clone()) {
+			self.penalize_bot(
+				playing_bot_name.clone(),
+				"it tried to assassinate an unknown bot",
+				context,
+			);
+		} else {
+			// Paying the fee
+			self.bots[self.playing_bots[self.turn]].set_coins(playing_bot_coins - 3);
+
+			// Taking a card from the target bot
+			let target_bot = self.get_bot_by_name(target.clone());
+			let target_bot_name = target_bot.get_name();
+			self.history.push(History::ActionAssassination {
+				by: playing_bot_name.clone(),
+				target: target_bot_name.clone(),
+			});
+			Self::log(format_args!(
+				"🃏  {} assassinates {}",
+				self.bots[self.playing_bots[self.turn]],
+				self.get_bot_by_name(target)
+			));
+			self.card_loss(target_bot_name, context);
+		}
 	}
 
 	fn action_couping(
 		&mut self,
 		target: String,
-		playing_bot_coins: u8,
 		playing_bot_name: String,
 		context: &Context,
 	) {
+		let playing_bot_coins = self.bots[self.playing_bots[self.turn]].get_coins();
 		if playing_bot_coins < 7 {
 			self.penalize_bot(
 				playing_bot_name.clone(),
-				"it tried to coup with insufficient funds",
+				"it tried to coup someone with insufficient funds",
 				context,
 			);
 		} else if self.target_not_found(target.clone()) {
@@ -764,7 +796,7 @@ impl Coup {
 			Self::log(format_args!(
 				"🃏  {} coups {}",
 				self.bots[self.playing_bots[self.turn]],
-				self.get_bot_by_name(target.clone())
+				self.get_bot_by_name(target)
 			));
 			self.card_loss(target_bot_name, context);
 		}
@@ -1152,5 +1184,114 @@ mod tests {
 		assert_eq!(coup.bots[1].get_cards(), vec![Card::Assassin, Card::Captain]);
 		assert_eq!(coup.deck, vec![Card::Ambassador]);
 		assert_eq!(coup.discard_pile, vec![Card::Ambassador]);
+	}
+
+	#[test]
+	fn test_action_assassination() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		coup.bots[0].set_cards(vec![Card::Ambassador, Card::Duke]);
+		coup.bots[1].set_cards(vec![Card::Assassin, Card::Captain]);
+		coup.playing_bots = vec![0, 1];
+		coup.bots[0].set_coins(4);
+		coup.deck = vec![Card::Ambassador, Card::Captain];
+
+		coup.action_assassination(
+			String::from("Player 2"),
+			String::from("Player 1"),
+			&Context {
+				other_bots: coup.get_other_bots(),
+				discard_pile: vec![],
+				history: vec![],
+				score: vec![],
+			},
+		);
+
+		assert_eq!(coup.bots[0].get_cards(), vec![Card::Ambassador, Card::Duke]);
+		assert_eq!(coup.bots[1].get_cards(), vec![Card::Assassin]);
+		assert_eq!(coup.bots[0].get_coins(), 1);
+		assert_eq!(coup.deck, vec![Card::Ambassador, Card::Captain]);
+		assert_eq!(coup.discard_pile, vec![Card::Captain]);
+		assert_eq!(
+			coup.history.pop().unwrap(),
+			History::ActionAssassination {
+				by: String::from("Player 1"),
+				target: String::from("Player 2")
+			}
+		);
+	}
+
+	#[test]
+	fn test_action_assassination_unknown_bot() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		coup.bots[0].set_cards(vec![Card::Ambassador, Card::Duke]);
+		coup.bots[1].set_cards(vec![Card::Assassin, Card::Captain]);
+		coup.playing_bots = vec![0, 1];
+		coup.bots[0].set_coins(4);
+		coup.deck = vec![Card::Ambassador, Card::Captain];
+
+		coup.action_assassination(
+			String::from("Unknown bot"),
+			String::from("Player 1"),
+			&Context {
+				other_bots: coup.get_other_bots(),
+				discard_pile: vec![],
+				history: vec![],
+				score: vec![],
+			},
+		);
+
+		assert_eq!(coup.bots[0].get_cards(), vec![Card::Ambassador]);
+		assert_eq!(coup.bots[1].get_cards(), vec![Card::Assassin, Card::Captain]);
+		assert_eq!(coup.bots[0].get_coins(), 4);
+		assert_eq!(coup.deck, vec![Card::Ambassador, Card::Captain]);
+		assert_eq!(coup.discard_pile, vec![Card::Duke]);
+	}
+
+	#[test]
+	fn test_action_assassination_insufficient_funds() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		coup.bots[0].set_cards(vec![Card::Ambassador, Card::Duke]);
+		coup.bots[1].set_cards(vec![Card::Assassin, Card::Captain]);
+		coup.playing_bots = vec![0, 1];
+		coup.bots[0].set_coins(2);
+		coup.deck = vec![Card::Ambassador, Card::Captain];
+
+		coup.action_assassination(
+			String::from("Player 2"),
+			String::from("Player 1"),
+			&Context {
+				other_bots: coup.get_other_bots(),
+				discard_pile: vec![],
+				history: vec![],
+				score: vec![],
+			},
+		);
+
+		assert_eq!(coup.bots[0].get_cards(), vec![Card::Ambassador]);
+		assert_eq!(coup.bots[1].get_cards(), vec![Card::Assassin, Card::Captain]);
+		assert_eq!(coup.bots[0].get_coins(), 2);
+		assert_eq!(coup.deck, vec![Card::Ambassador, Card::Captain]);
+		assert_eq!(coup.discard_pile, vec![Card::Duke]);
 	}
 }
