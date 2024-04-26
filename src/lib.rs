@@ -169,7 +169,7 @@ impl Coup {
 
 	fn log(message: std::fmt::Arguments) {
 		if std::env::var("NOLOG").is_err() {
-			println!("{:?}", message);
+			println!(" {:?}", message);
 		}
 	}
 
@@ -185,7 +185,11 @@ impl Coup {
 			spaceless: true,
 			..Options::default()
 		});
-		println!("\n\n{}\x1b[4Dv{}\n\n", output.text, env!("CARGO_PKG_VERSION"));
+		Self::log(format_args!(
+			"\n\n{}\x1b[4Dv{}\n\n",
+			output.text,
+			env!("CARGO_PKG_VERSION")
+		));
 
 		// Let's play
 		self.game_loop();
@@ -372,7 +376,7 @@ impl Coup {
 
 		let winner = &self.bots[self.playing_bots[0]];
 		Self::log(format_args!(
-			"\n🎉🎉🎉 The winner is {} \x1b[90min {} moves\x1b[39m\n",
+			"\n 🎉🎉🎉 The winner is {} \x1b[90min {} moves\x1b[39m\n",
 			winner, self.moves
 		));
 	}
@@ -937,7 +941,7 @@ impl Coup {
 				target: target_bot_name.clone(),
 			});
 			Self::log(format_args!(
-				"🃏  {} assassinates {}",
+				"🃏  {} assassinates {} with the \x1b[33mAssassin\x1b[39m",
 				self.bots[self.playing_bots[self.turn]],
 				self.get_bot_by_name(target)
 			));
@@ -976,7 +980,7 @@ impl Coup {
 				target: target_bot_name.clone(),
 			});
 			Self::log(format_args!(
-				"🃏  {} coups {}",
+				"🃏  {} \x1b[33mcoups\x1b[39m {}",
 				self.bots[self.playing_bots[self.turn]],
 				self.get_bot_by_name(target)
 			));
@@ -992,7 +996,7 @@ impl Coup {
 			by: self.bots[self.playing_bots[self.turn]].get_name(),
 		});
 		Self::log(format_args!(
-			"🃏  {} takes foreign aid",
+			"🃏  {} takes \x1b[33mforeign aid\x1b[39m",
 			self.bots[self.playing_bots[self.turn]],
 		));
 	}
@@ -1071,7 +1075,7 @@ impl Coup {
 			by: self.bots[self.playing_bots[self.turn]].get_name(),
 		});
 		Self::log(format_args!(
-			"🃏  {} takes tax",
+			"🃏  {} takes tax with the \x1b[33mDuke\x1b[39m",
 			self.bots[self.playing_bots[self.turn]],
 		));
 	}
