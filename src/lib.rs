@@ -494,7 +494,7 @@ impl Coup {
 									playing_bot_name,
 									context,
 								),
-								Action::Stealing(_) => self.action_stealing(),
+								Action::Stealing(_) => self.action_stealing(target_name),
 								Action::Coup(_)
 								| Action::ForeignAid
 								| Action::Swapping
@@ -511,7 +511,7 @@ impl Coup {
 						Action::Assassination(_) => {
 							self.action_assassination(target_name, playing_bot_name, context)
 						},
-						Action::Stealing(_) => self.action_stealing(),
+						Action::Stealing(_) => self.action_stealing(target_name),
 						Action::Coup(_)
 						| Action::ForeignAid
 						| Action::Swapping
@@ -528,7 +528,7 @@ impl Coup {
 				Action::Assassination(_) => {
 					self.action_assassination(target_name, playing_bot_name, context)
 				},
-				Action::Stealing(_) => self.action_stealing(),
+				Action::Stealing(_) => self.action_stealing(target_name),
 				Action::Coup(_)
 				| Action::ForeignAid
 				| Action::Swapping
@@ -1061,10 +1061,27 @@ impl Coup {
 		));
 	}
 
-	fn action_stealing(&self) {
-		// Self::log(format_args!("🃏  {} plays a card", x));
-		// TODO
-		todo!()
+	fn action_stealing(&mut self, target: String) {
+		let coins = self.bots[self.playing_bots[self.turn]].get_coins();
+		let target_coins = self.get_bot_by_name(target.clone()).get_coins();
+		let booty = std::cmp::min(target_coins, 2);
+		self.bots[self.playing_bots[self.turn]].set_coins(coins + booty);
+		self
+			.bots
+			.iter_mut()
+			.find(|bot| bot.get_name() == target)
+			.unwrap()
+			.set_coins(target_coins - booty);
+
+		self.history.push(History::ActionStealing {
+			by: self.bots[self.playing_bots[self.turn]].get_name(),
+			target: self.get_bot_by_name(target.clone()).get_name(),
+		});
+		Self::log(format_args!(
+			"🃏  {} \x1b[33msteals 2 coins\x1b[39m from {}",
+			self.bots[self.playing_bots[self.turn]],
+			self.get_bot_by_name(target),
+		));
 	}
 
 	fn action_tax(&mut self) {
@@ -1440,6 +1457,7 @@ mod tests {
 		assert_eq!(coup.discard_pile, vec![Card::Ambassador]);
 	}
 
+	// *******************************| Actions |****************************** //
 	#[test]
 	fn test_action_assassination() {
 		let mut coup = Coup::new(vec![
@@ -1548,6 +1566,8 @@ mod tests {
 		assert_eq!(coup.deck, vec![Card::Ambassador, Card::Captain]);
 		assert_eq!(coup.discard_pile, vec![Card::Duke]);
 	}
+
+	// TODO: action_couping
 
 	#[test]
 	fn test_action_foraign_aid() {
@@ -1721,6 +1741,79 @@ mod tests {
 		assert_eq!(coup.bots[0].get_cards(), vec![Card::Ambassador]);
 		assert_eq!(coup.bots[1].get_cards(), vec![Card::Assassin, Card::Captain]);
 		assert_eq!(coup.deck.len(), 0);
+	}
+
+	// TODO: action_income
+
+	#[test]
+	fn test_action_stealing() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 3")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 4")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+		coup.playing_bots = vec![0, 1, 2, 3];
+
+		coup.action_stealing(String::from("Player 3"));
+
+		assert_eq!(coup.bots[0].get_coins(), 4);
+		assert_eq!(coup.bots[1].get_coins(), 2);
+		assert_eq!(coup.bots[2].get_coins(), 0);
+		assert_eq!(coup.bots[3].get_coins(), 2);
+	}
+
+	#[test]
+	fn test_action_stealing_min() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 3")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 4")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+		coup.playing_bots = vec![0, 1, 2, 3];
+		coup.bots[2].set_coins(1);
+
+		coup.action_stealing(String::from("Player 3"));
+
+		assert_eq!(coup.bots[0].get_coins(), 3);
+		assert_eq!(coup.bots[1].get_coins(), 2);
+		assert_eq!(coup.bots[2].get_coins(), 0);
+		assert_eq!(coup.bots[3].get_coins(), 2);
+	}
+
+	#[test]
+	fn test_action_stealing_max() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 3")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 4")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+		coup.playing_bots = vec![0, 1, 2, 3];
+		coup.bots[2].set_coins(5);
+
+		coup.action_stealing(String::from("Player 3"));
+
+		assert_eq!(coup.bots[0].get_coins(), 4);
+		assert_eq!(coup.bots[1].get_coins(), 2);
+		assert_eq!(coup.bots[2].get_coins(), 3);
+		assert_eq!(coup.bots[3].get_coins(), 2);
 	}
 
 	#[test]
