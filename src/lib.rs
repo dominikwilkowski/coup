@@ -299,9 +299,6 @@ impl Coup {
 	fn game_loop(&mut self) {
 		while self.playing_bots.len() > 1 {
 			self.moves += 1;
-			let playing_bot = &self.bots[self.playing_bots[self.turn]];
-			let playing_bot_name = playing_bot.get_name();
-			let playing_bot_coins = playing_bot.get_coins();
 
 			let context = Context {
 				other_bots: self.get_other_bots(),
@@ -324,37 +321,29 @@ impl Coup {
 				Action::Assassination(target_name) => {
 					self.challenge_and_counter_round(
 						Action::Assassination(target_name.clone()),
-						playing_bot_name,
 						target_name,
 						&context,
 					);
 				},
 				Action::Coup(ref target) => {
-					self.action_couping(target.clone(), playing_bot_name, &context);
+					self.action_couping(target.clone(), &context);
 				},
 				Action::ForeignAid => {
-					self.counter_round_only(playing_bot_name, &context);
+					self.counter_round_only(&context);
 				},
 				Action::Swapping => {
-					self.challenge_round_only(
-						Action::Swapping,
-						playing_bot_name,
-						&context,
-					);
+					self.challenge_round_only(Action::Swapping, &context);
 				},
-				Action::Income => {
-					self.action_income(playing_bot_coins, playing_bot_name)
-				},
+				Action::Income => self.action_income(),
 				Action::Stealing(target_name) => {
 					self.challenge_and_counter_round(
 						Action::Stealing(target_name.clone()),
-						playing_bot_name,
 						target_name,
 						&context,
 					);
 				},
 				Action::Tax => {
-					self.challenge_round_only(Action::Tax, playing_bot_name, &context);
+					self.challenge_round_only(Action::Tax, &context);
 				},
 			}
 
@@ -384,10 +373,10 @@ impl Coup {
 	fn challenge_and_counter_round(
 		&mut self,
 		action: Action,
-		playing_bot_name: String,
 		target_name: String,
 		context: &Context,
 	) {
+		let playing_bot_name = self.bots[self.playing_bots[self.turn]].get_name();
 		// THE CHALLENGE ROUND
 		// On Action::Assassination and Action::Stealing
 		// Does anyone want to challenge this action?
@@ -489,11 +478,9 @@ impl Coup {
 								context,
 							);
 							match action {
-								Action::Assassination(_) => self.action_assassination(
-									target_name,
-									playing_bot_name,
-									context,
-								),
+								Action::Assassination(_) => {
+									self.action_assassination(target_name, context)
+								},
 								Action::Stealing(_) => self.action_stealing(target_name),
 								Action::Coup(_)
 								| Action::ForeignAid
@@ -509,7 +496,7 @@ impl Coup {
 					// No counter was played so the action is performed
 					match action {
 						Action::Assassination(_) => {
-							self.action_assassination(target_name, playing_bot_name, context)
+							self.action_assassination(target_name, context)
 						},
 						Action::Stealing(_) => self.action_stealing(target_name),
 						Action::Coup(_)
@@ -526,7 +513,7 @@ impl Coup {
 			// No challenge was played so the action is performed
 			match action {
 				Action::Assassination(_) => {
-					self.action_assassination(target_name, playing_bot_name, context)
+					self.action_assassination(target_name, context)
 				},
 				Action::Stealing(_) => self.action_stealing(target_name),
 				Action::Coup(_)
@@ -540,12 +527,8 @@ impl Coup {
 		}
 	}
 
-	fn challenge_round_only(
-		&mut self,
-		action: Action,
-		playing_bot_name: String,
-		context: &Context,
-	) {
+	fn challenge_round_only(&mut self, action: Action, context: &Context) {
+		let playing_bot_name = self.bots[self.playing_bots[self.turn]].get_name();
 		// THE CHALLENGE ROUND
 		// On Action::Swapping and Action::Tax
 		// Does anyone want to challenge this action?
@@ -607,11 +590,8 @@ impl Coup {
 		}
 	}
 
-	fn counter_round_only(
-		&mut self,
-		playing_bot_name: String,
-		context: &Context,
-	) {
+	fn counter_round_only(&mut self, context: &Context) {
+		let playing_bot_name = self.bots[self.playing_bots[self.turn]].get_name();
 		// THE COUNTER CHALLENGE ROUND
 		// On Action::ForeignAid
 		// Does anyone want to counter this action?
@@ -910,13 +890,9 @@ impl Coup {
 	}
 
 	// *******************************| Actions |****************************** //
-	fn action_assassination(
-		&mut self,
-		target: String,
-		playing_bot_name: String,
-		context: &Context,
-	) {
+	fn action_assassination(&mut self, target: String, context: &Context) {
 		let playing_bot_coins = self.bots[self.playing_bots[self.turn]].get_coins();
+		let playing_bot_name = self.bots[self.playing_bots[self.turn]].get_name();
 		if playing_bot_coins < 3 {
 			self.penalize_bot(
 				playing_bot_name.clone(),
@@ -949,13 +925,9 @@ impl Coup {
 		}
 	}
 
-	fn action_couping(
-		&mut self,
-		target: String,
-		playing_bot_name: String,
-		context: &Context,
-	) {
+	fn action_couping(&mut self, target: String, context: &Context) {
 		let playing_bot_coins = self.bots[self.playing_bots[self.turn]].get_coins();
+		let playing_bot_name = self.bots[self.playing_bots[self.turn]].get_name();
 		if playing_bot_coins < 7 {
 			self.penalize_bot(
 				playing_bot_name.clone(),
@@ -1048,12 +1020,13 @@ impl Coup {
 		}
 	}
 
-	fn action_income(&mut self, playing_bot_coins: u8, playing_bot_name: String) {
+	fn action_income(&mut self) {
+		let playing_bot_coins = self.bots[self.playing_bots[self.turn]].get_coins();
 		// Adding the coin to the bot
 		self.bots[self.playing_bots[self.turn]].set_coins(playing_bot_coins + 1);
 
 		self.history.push(History::ActionIncome {
-			by: playing_bot_name.clone(),
+			by: self.bots[self.playing_bots[self.turn]].get_name(),
 		});
 		Self::log(format_args!(
 			"🃏  {} takes \x1b[33ma coin\x1b[39m",
@@ -1476,7 +1449,6 @@ mod tests {
 
 		coup.action_assassination(
 			String::from("Player 2"),
-			String::from("Player 1"),
 			&Context {
 				other_bots: coup.get_other_bots(),
 				discard_pile: vec![],
@@ -1517,7 +1489,6 @@ mod tests {
 
 		coup.action_assassination(
 			String::from("Unknown bot"),
-			String::from("Player 1"),
 			&Context {
 				other_bots: coup.get_other_bots(),
 				discard_pile: vec![],
@@ -1551,7 +1522,6 @@ mod tests {
 
 		coup.action_assassination(
 			String::from("Player 2"),
-			String::from("Player 1"),
 			&Context {
 				other_bots: coup.get_other_bots(),
 				discard_pile: vec![],
@@ -1743,7 +1713,22 @@ mod tests {
 		assert_eq!(coup.deck.len(), 0);
 	}
 
-	// TODO: action_income
+	#[test]
+	fn test_action_income() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+		coup.playing_bots = vec![0, 1];
+
+		coup.action_income();
+
+		assert_eq!(coup.bots[0].get_coins(), 3);
+		assert_eq!(coup.bots[1].get_coins(), 2);
+	}
 
 	#[test]
 	fn test_action_stealing() {
