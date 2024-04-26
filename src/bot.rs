@@ -108,10 +108,10 @@ pub trait BotInterface {
 	/// Called when you played your ambassador and now need to decide which cards you want to keep
 	fn on_swapping_cards(
 		&self,
-		_new_cards: &[Card],
+		new_cards: [Card; 2],
 		_context: &Context,
-	) -> Option<Vec<Card>> {
-		None
+	) -> [Card; 2] {
+		new_cards
 	}
 
 	/// Called when you lost a card and now must decide which one you want to lose
