@@ -82,7 +82,7 @@ pub enum History {
 }
 
 /// The score of the game for all bots
-pub type Score = Vec<(String, u64)>;
+pub type Score = Vec<(String, i64)>;
 
 /// The Coup game engine
 pub struct Coup {
@@ -261,6 +261,25 @@ impl Coup {
 
 	fn target_not_found(&self, target: String) -> bool {
 		self.bots.iter().filter(|bot| bot.get_name() == target).count() == 0
+	}
+
+	fn _get_score(&mut self, winners: Vec<String>) {
+		let winner_count = winners.len() as i64;
+		let loser_count = self.playing_bots.len() as i64 - winner_count;
+		let loser_score = -1 / (self.playing_bots.len() as i64 - 1);
+		let winner_score = -((loser_score * loser_count) / winner_count);
+
+		self.score = self
+			.score
+			.iter()
+			.map(|(name, score)| {
+				if winners.contains(name) {
+					(name.clone(), score + winner_score)
+				} else {
+					(name.clone(), score + loser_score)
+				}
+			})
+			.collect::<Score>();
 	}
 
 	fn game_loop(&mut self) {
