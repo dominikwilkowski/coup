@@ -69,7 +69,7 @@ pub enum History {
 	ActionSwapping { by: String },
 	ActionIncome { by: String },
 	ActionStealing { by: String, target: String },
-	ActionTax { by: String, target: String },
+	ActionTax { by: String },
 
 	ChallengeAssassin { by: String, target: String },
 	ChallengeAmbassador { by: String, target: String },
@@ -1014,10 +1014,17 @@ impl Coup {
 		todo!()
 	}
 
-	fn action_tax(&self) {
-		// Self::log(format_args!("🃏  {} plays a card", x));
-		// TODO
-		todo!()
+	fn action_tax(&mut self) {
+		let coins = self.bots[self.playing_bots[self.turn]].get_coins();
+		self.bots[self.playing_bots[self.turn]].set_coins(coins + 3);
+
+		self.history.push(History::ActionTax {
+			by: self.bots[self.playing_bots[self.turn]].get_name(),
+		});
+		Self::log(format_args!(
+			"🃏  {} takes tax",
+			self.bots[self.playing_bots[self.turn]],
+		));
 	}
 }
 
@@ -1503,6 +1510,23 @@ mod tests {
 		coup.action_foraign_aid();
 
 		assert_eq!(coup.bots[0].get_coins(), 4);
+		assert_eq!(coup.bots[1].get_coins(), 2);
+	}
+
+	#[test]
+	fn test_action_tax() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+		coup.playing_bots = vec![0, 1];
+
+		coup.action_tax();
+
+		assert_eq!(coup.bots[0].get_coins(), 5);
 		assert_eq!(coup.bots[1].get_coins(), 2);
 	}
 }
