@@ -1,6 +1,8 @@
-use std::fmt;
+extern crate cfonts;
 
+use cfonts::{render, Colors, Options};
 use rand::{seq::SliceRandom, thread_rng};
+use std::fmt;
 
 pub mod bot;
 pub mod bots;
@@ -175,7 +177,15 @@ impl Coup {
 	/// and coins and start the game loop
 	pub fn play(&mut self) {
 		self.setup();
-		// TODO: add cfonts logo here
+
+		// Logo
+		let output = render(Options {
+			text: String::from("Coup"),
+			colors: vec![Colors::White, Colors::Yellow],
+			spaceless: true,
+			..Options::default()
+		});
+		println!("\n\n{}\x1b[4Dv{}\n\n", output.text, env!("CARGO_PKG_VERSION"));
 
 		// Let's play
 		self.game_loop();
@@ -1078,7 +1088,7 @@ mod tests {
 
 		assert_eq!(coup.bots[0].get_cards(), vec![]);
 		assert_eq!(coup.bots[1].get_cards(), vec![]);
-		assert_eq!(coup.playing_bots, vec![]);
+		assert_eq!(coup.playing_bots, Vec::<usize>::new());
 		assert_eq!(coup.deck, vec![]);
 		assert_eq!(coup.discard_pile, vec![]);
 		assert_eq!(coup.history, vec![]);

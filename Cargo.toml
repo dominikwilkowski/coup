@@ -13,4 +13,5 @@ categories = ["command-line-interface", "game-engines", "game-development", "gam
 include = ["/assets", "/src", "!.DS_Store", "LICENSE"]
 
 [dependencies]
+cfonts = "1.1.4"
 rand = "0.8.5"
