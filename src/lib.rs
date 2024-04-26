@@ -1160,6 +1160,21 @@ mod tests {
 	}
 
 	#[test]
+	fn test_target_not_found() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot::new(String::from("Player 1")))
+				as Box<dyn BotInterface>,
+			Box::new(StaticBot::new(String::from("Player 2")))
+				as Box<dyn BotInterface>,
+		]);
+		coup.setup();
+
+		assert_eq!(coup.target_not_found(String::from("Player 1")), false);
+		assert_eq!(coup.target_not_found(String::from("Player 3")), true);
+		assert_eq!(coup.target_not_found(String::from("Player 2")), false);
+	}
+
+	#[test]
 	fn test_swap_card() {
 		let mut coup = Coup::new(vec![
 			Box::new(StaticBot::new(String::from("Player 1")))
