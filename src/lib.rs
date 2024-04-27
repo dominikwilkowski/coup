@@ -293,7 +293,8 @@ impl Coup {
 		}
 	}
 
-	fn card_loss(&mut self, name: String, context: &Context) {
+	fn card_loss(&mut self, name: String) {
+		let context = self.get_context(name.clone());
 		self.bots.iter_mut().for_each(|bot| {
 			let context = Context {
 				coins: bot.coins,
@@ -340,13 +341,12 @@ impl Coup {
 	}
 
 	fn penalize_bot(&mut self, name: String, reason: &str) {
-		let context = self.get_context(name.clone());
 		Self::log(format_args!(
 			"🚨  {} is being penalized because \x1b[33m{}\x1b[39m",
 			self.get_bot_by_name(name.clone()),
 			reason
 		));
-		self.card_loss(name, &context);
+		self.card_loss(name);
 	}
 
 	fn target_not_found(&self, target: String) -> bool {
@@ -431,6 +431,7 @@ impl Coup {
 			} else {
 				self.turn + 1
 			};
+			// TODO: detect stale mate
 		}
 
 		let winner = &self.bots[self.playing_bots[0]];
@@ -868,20 +869,19 @@ impl Coup {
 			},
 		};
 
-		let context = self.get_context(player.name.clone());
 		if player.cards.contains(&card) {
 			Self::log(format_args!(
 				"👍  The challenge was successful because {} didn't have the {:?}",
 				player, card
 			));
-			self.card_loss(player.name.clone(), &context);
+			self.card_loss(player.name.clone());
 			false
 		} else {
 			Self::log(format_args!(
 				"👎  The challenge was unsuccessful because {} did have the {:?}",
 				player, card
 			));
-			self.card_loss(challenger.name.clone(), &context);
+			self.card_loss(challenger.name.clone());
 			true
 		}
 	}
@@ -922,20 +922,19 @@ impl Coup {
 			.collect::<Vec<String>>()
 			.join(" and the ");
 
-		let context = self.get_context(counterer.name.clone());
 		if cards.iter().any(|&card| counterer.cards.contains(&card)) {
 			Self::log(format_args!(
 				"👍  The counter was successful because {} didn't have the {:?}",
 				counterer, card_string
 			));
-			self.card_loss(counterer.name.clone(), &context);
+			self.card_loss(counterer.name.clone());
 			false
 		} else {
 			Self::log(format_args!(
 				"👎  The counter was unsuccessful because {} did have the {:?}",
 				counterer, card_string
 			));
-			self.card_loss(challenger.name.clone(), &context);
+			self.card_loss(challenger.name.clone());
 			true
 		}
 	}
@@ -960,7 +959,6 @@ impl Coup {
 				"it tried to assassinate an unknown bot",
 			);
 		} else {
-			let context = self.get_context(target.clone());
 			// Paying the fee
 			self.bots[self.playing_bots[self.turn]].coins = playing_bot_coins - 3;
 
@@ -975,7 +973,7 @@ impl Coup {
 				self.bots[self.playing_bots[self.turn]],
 				self.get_bot_by_name(target)
 			));
-			self.card_loss(target_bot_name, &context);
+			self.card_loss(target_bot_name);
 		}
 	}
 
@@ -993,7 +991,6 @@ impl Coup {
 				"it tried to coup an unknown bot",
 			);
 		} else {
-			let context = self.get_context(target.clone());
 			// Paying the fee
 			self.bots[self.playing_bots[self.turn]].coins = playing_bot_coins - 7;
 
@@ -1008,12 +1005,7 @@ impl Coup {
 				self.bots[self.playing_bots[self.turn]],
 				self.get_bot_by_name(target)
 			));
-			let target_context = Context {
-				coins: self.get_bot_by_name(target_bot_name.clone()).coins,
-				cards: self.get_bot_by_name(target_bot_name.clone()).cards.clone(),
-				..context.clone()
-			};
-			self.card_loss(target_bot_name, &target_context);
+			self.card_loss(target_bot_name);
 		}
 	}
 
@@ -1397,17 +1389,7 @@ mod tests {
 		coup.bots[0].cards = vec![Card::Ambassador, Card::Duke];
 		coup.bots[1].cards = vec![Card::Captain, Card::Captain];
 
-		coup.card_loss(
-			String::from("StaticBot 2"),
-			&Context {
-				coins: 2,
-				cards: vec![Card::Captain, Card::Captain],
-				other_bots: coup.get_other_bots(),
-				discard_pile: vec![],
-				history: vec![],
-				score: vec![],
-			},
-		);
+		coup.card_loss(String::from("StaticBot 2"));
 
 		assert_eq!(coup.bots[0].cards, vec![Card::Ambassador, Card::Duke]);
 		assert_eq!(coup.bots[1].cards, vec![Card::Captain]);
@@ -1432,17 +1414,7 @@ mod tests {
 		coup.bots[0].cards = vec![Card::Ambassador, Card::Duke];
 		coup.bots[1].cards = vec![Card::Assassin, Card::Captain];
 
-		coup.card_loss(
-			String::from("TestBot"),
-			&Context {
-				coins: 2,
-				cards: vec![Card::Assassin, Card::Captain],
-				other_bots: coup.get_other_bots(),
-				discard_pile: vec![],
-				history: vec![],
-				score: vec![],
-			},
-		);
+		coup.card_loss(String::from("TestBot"));
 
 		assert_eq!(coup.bots[0].cards, vec![Card::Ambassador, Card::Duke]);
 		assert_eq!(coup.bots[1].cards, vec![]);
