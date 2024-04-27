@@ -239,28 +239,6 @@ impl Coup {
 		}
 	}
 
-	/// Playing a game which means we setup the table, give each bots their cards
-	/// and coins and start the game loop
-	pub fn play(&mut self) {
-		self.setup();
-
-		// Logo
-		let output = render(Options {
-			text: String::from("Coup"),
-			colors: vec![Colors::White, Colors::Yellow],
-			spaceless: true,
-			..Options::default()
-		});
-		Self::log(format_args!(
-			"\n\n{}\x1b[4Dv{}\n\n",
-			output.text,
-			env!("CARGO_PKG_VERSION")
-		));
-
-		// Let's play
-		self.game_loop();
-	}
-
 	#[allow(clippy::borrowed_box)]
 	fn get_bot_by_name(&self, name: String) -> &Bot {
 		self.bots.iter().find(|bot| bot.name == name).unwrap()
@@ -370,6 +348,48 @@ impl Coup {
 				}
 			})
 			.collect::<Score>();
+	}
+
+	// We take a card from a bot and replace it with a new one from the deck
+	fn swap_card(&mut self, card: Card, swopee: String) {
+		Self::log(format_args!(
+			"↬  {} is swapping its card for a new card from the deck",
+			self.get_bot_by_name(swopee.clone())
+		));
+		for bot in self.bots.iter_mut() {
+			if bot.name == swopee.clone() {
+				if let Some(index) = bot.cards.iter().position(|&c| c == card) {
+					bot.cards.remove(index);
+				}
+				self.discard_pile.push(card);
+
+				let mut new_cards = bot.cards.clone();
+				new_cards.push(self.deck.pop().unwrap());
+				bot.cards = new_cards;
+			}
+		}
+	}
+
+	/// Playing a game which means we setup the table, give each bots their cards
+	/// and coins and start the game loop
+	pub fn play(&mut self) {
+		self.setup();
+
+		// Logo
+		let output = render(Options {
+			text: String::from("Coup"),
+			colors: vec![Colors::White, Colors::Yellow],
+			spaceless: true,
+			..Options::default()
+		});
+		Self::log(format_args!(
+			"\n\n{}\x1b[4Dv{}\n\n",
+			output.text,
+			env!("CARGO_PKG_VERSION")
+		));
+
+		// Let's play
+		self.game_loop();
 	}
 
 	fn game_loop(&mut self) {
@@ -807,26 +827,6 @@ impl Coup {
 		None
 	}
 
-	// We take a card from a bot and replace it with a new one from the deck
-	fn swap_card(&mut self, card: Card, swopee: String) {
-		Self::log(format_args!(
-			"↬  {} is swapping its card for a new card from the deck",
-			self.get_bot_by_name(swopee.clone())
-		));
-		for bot in self.bots.iter_mut() {
-			if bot.name == swopee.clone() {
-				if let Some(index) = bot.cards.iter().position(|&c| c == card) {
-					bot.cards.remove(index);
-				}
-				self.discard_pile.push(card);
-
-				let mut new_cards = bot.cards.clone();
-				new_cards.push(self.deck.pop().unwrap());
-				bot.cards = new_cards;
-			}
-		}
-	}
-
 	// Someone challenged another bot for playing a card they believe is a bluff
 	fn resolve_challenge(
 		&mut self,
@@ -944,7 +944,7 @@ impl Coup {
 		todo!();
 	}
 
-	// // *******************************| Actions |****************************** //
+	// *******************************| Actions |****************************** //
 	fn action_assassination(&mut self, target: String) {
 		let playing_bot_coins = self.bots[self.playing_bots[self.turn]].coins;
 		let playing_bot_name = self.bots[self.playing_bots[self.turn]].name.clone();
@@ -1221,8 +1221,7 @@ mod tests {
 		assert_eq!(coup.moves, 0);
 	}
 
-	// // TODO: log
-	// // TODO: play
+	// TODO: log
 
 	#[test]
 	fn test_get_bot_by_name() {
@@ -1421,7 +1420,7 @@ mod tests {
 		assert_eq!(coup.discard_pile, vec![Card::Captain, Card::Assassin]);
 	}
 
-	// // TODO: penalize_bot
+	// TODO: penalize_bot
 
 	#[test]
 	fn test_target_not_found() {
@@ -1433,12 +1432,7 @@ mod tests {
 		assert_eq!(coup.target_not_found(String::from("StaticBot 2")), false);
 	}
 
-	// // TODO: _get_score
-	// // TODO: game_loop
-	// // TODO: challenge_and_counter_round
-	// // TODO: challenge_round_only
-	// // TODO: counter_round_only
-	// // TODO: challenge_round
+	// TODO: _get_score
 
 	#[test]
 	fn test_swap_card() {
@@ -1462,12 +1456,18 @@ mod tests {
 		assert_eq!(coup.discard_pile, vec![Card::Ambassador]);
 	}
 
-	// // TODO: swap_card
-	// // TODO: resolve_challenge
-	// // TODO: resolve_counter
-	// // TODO: _looping
+	// TODO: play
+	// TODO: game_loop
+	// TODO: challenge_and_counter_round
+	// TODO: challenge_round_only
+	// TODO: counter_round_only
+	// TODO: challenge_round
 
-	// // *******************************| Actions |****************************** //
+	// TODO: resolve_challenge
+	// TODO: resolve_counter
+	// TODO: _looping
+
+	// *******************************| Actions |****************************** //
 	#[test]
 	fn test_action_assassination() {
 		let mut coup = Coup::new(vec![Box::new(StaticBot), Box::new(StaticBot)]);
