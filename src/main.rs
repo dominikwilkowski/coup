@@ -5,10 +5,10 @@ use coup::{
 
 fn main() {
 	let mut coup_game = Coup::new(vec![
-		Box::new(StaticBot::new(String::from("Charles"))),
-		Box::new(HonestBot::new(String::from("Tici"))),
-		Box::new(StaticBot::new(String::from("Novini"))),
-		Box::new(HonestBot::new(String::from("Dom"))),
+		Box::new(StaticBot),
+		Box::new(HonestBot),
+		Box::new(StaticBot),
+		Box::new(HonestBot),
 	]);
 
 	coup_game.play();
