@@ -84,7 +84,7 @@ pub enum History {
 }
 
 /// The score of the game for all bots
-pub type Score = Vec<(String, i64)>;
+pub type Score = Vec<(String, f64)>;
 
 struct Bot {
 	name: String,
@@ -143,7 +143,7 @@ impl Coup {
 	pub fn new(user_bots: Vec<Box<dyn BotInterface>>) -> Self {
 		let mut bots: Vec<Bot> = Vec::new();
 		let mut existing_names: Vec<String> = Vec::new();
-		let mut score: Vec<(String, i64)> = Vec::new();
+		let mut score: Vec<(String, f64)> = Vec::new();
 
 		for bot in user_bots.into_iter() {
 			let base_name = bot.get_name();
@@ -166,7 +166,7 @@ impl Coup {
 			};
 
 			bots.push(bot);
-			score.push((unique_name, 0));
+			score.push((unique_name, 0.0));
 		}
 
 		Self {
@@ -331,10 +331,10 @@ impl Coup {
 		self.bots.iter().filter(|bot| bot.name == target).count() == 0
 	}
 
-	fn _get_score(&mut self, winners: Vec<String>) {
-		let winner_count = winners.len() as i64;
-		let loser_count = self.playing_bots.len() as i64 - winner_count;
-		let loser_score = -1 / (self.playing_bots.len() as i64 - 1);
+	fn set_score(&mut self, winners: Vec<String>) {
+		let winner_count = winners.len() as f64;
+		let loser_count = self.playing_bots.len() as f64 - winner_count;
+		let loser_score = -1.0 / (self.playing_bots.len() as f64 - 1.0);
 		let winner_score = -((loser_score * loser_count) / winner_count);
 
 		self.score = self
@@ -453,6 +453,8 @@ impl Coup {
 			};
 			// TODO: detect stale mate
 		}
+
+		self.set_score(vec![self.bots[self.playing_bots[0]].name.clone()]);
 
 		let winner = &self.bots[self.playing_bots[0]];
 		Self::log(format_args!(
@@ -1174,8 +1176,8 @@ mod tests {
 		assert_eq!(
 			coup.score,
 			vec![
-				(String::from("StaticBot"), 0),
-				(String::from("StaticBot 2"), 0)
+				(String::from("StaticBot"), 0.0),
+				(String::from("StaticBot 2"), 0.0)
 			]
 		);
 		assert_eq!(coup.turn, 0);
@@ -1353,8 +1355,8 @@ mod tests {
 				discard_pile: vec![],
 				history: vec![],
 				score: vec![
-					(String::from("StaticBot"), 0),
-					(String::from("StaticBot 2"), 0)
+					(String::from("StaticBot"), 0.0),
+					(String::from("StaticBot 2"), 0.0)
 				],
 			}
 		);
@@ -1373,8 +1375,8 @@ mod tests {
 				discard_pile: vec![],
 				history: vec![],
 				score: vec![
-					(String::from("StaticBot"), 0),
-					(String::from("StaticBot 2"), 0)
+					(String::from("StaticBot"), 0.0),
+					(String::from("StaticBot 2"), 0.0)
 				],
 			}
 		);
@@ -1432,7 +1434,69 @@ mod tests {
 		assert_eq!(coup.target_not_found(String::from("StaticBot 2")), false);
 	}
 
-	// TODO: _get_score
+	#[test]
+	fn test_set_score() {
+		// Two players, one winner
+		let mut coup = Coup::new(vec![Box::new(StaticBot), Box::new(StaticBot)]);
+		coup.setup();
+
+		coup.set_score(vec![String::from("StaticBot")]);
+
+		assert_eq!(
+			coup.score,
+			vec![
+				(String::from("StaticBot"), 1.0),
+				(String::from("StaticBot 2"), -1.0)
+			]
+		);
+
+		// Five players, one winner
+		coup = Coup::new(vec![
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+
+		coup.set_score(vec![String::from("StaticBot")]);
+
+		assert_eq!(
+			coup.score,
+			vec![
+				(String::from("StaticBot"), 1.0),
+				(String::from("StaticBot 2"), -0.25),
+				(String::from("StaticBot 3"), -0.25),
+				(String::from("StaticBot 4"), -0.25),
+				(String::from("StaticBot 5"), -0.25),
+			]
+		);
+
+		// Five players, two winner
+		coup = Coup::new(vec![
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+
+		coup
+			.set_score(vec![String::from("StaticBot"), String::from("StaticBot 2")]);
+
+		assert_eq!(
+			coup.score,
+			vec![
+				(String::from("StaticBot"), 0.375),
+				(String::from("StaticBot 2"), 0.375),
+				(String::from("StaticBot 3"), -0.25),
+				(String::from("StaticBot 4"), -0.25),
+				(String::from("StaticBot 5"), -0.25),
+			]
+		);
+	}
 
 	#[test]
 	fn test_swap_card() {
