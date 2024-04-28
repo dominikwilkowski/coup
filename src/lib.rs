@@ -1543,7 +1543,461 @@ mod tests {
 	// TODO: challenge_and_counter_round
 	// TODO: challenge_round_only
 	// TODO: counter_round_only
-	// TODO: challenge_round
+
+	#[test]
+	fn test_challenge_round_action_no_challenge() {
+		pub struct TestBot {
+			pub calls: std::cell::RefCell<Vec<String>>,
+		}
+		impl BotInterface for TestBot {
+			fn get_name(&self) -> String {
+				format!("TestBot{}", self.calls.borrow().join(","))
+			}
+			fn on_challenge_action_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				self.calls.borrow_mut().push(String::from("on_challenge_action_round"));
+				false
+			}
+		}
+
+		let mut coup = Coup::new(vec![
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+		]);
+		coup.setup();
+
+		coup.challenge_round(
+			ChallengeRound::Action,
+			&Action::Swapping,
+			String::from("TestBot"),
+		);
+
+		assert_eq!(coup.bots[0].interface.get_name(), String::from("TestBot"));
+		assert_eq!(
+			coup.bots[1].interface.get_name(),
+			String::from("TestBoton_challenge_action_round")
+		);
+		assert_eq!(
+			coup.bots[2].interface.get_name(),
+			String::from("TestBoton_challenge_action_round")
+		);
+		assert_eq!(
+			coup.bots[3].interface.get_name(),
+			String::from("TestBoton_challenge_action_round")
+		);
+		assert_eq!(
+			coup.bots[4].interface.get_name(),
+			String::from("TestBoton_challenge_action_round")
+		);
+		assert_eq!(coup.history, vec![]);
+
+		coup.challenge_round(
+			ChallengeRound::Action,
+			&Action::Swapping,
+			String::from("TestBot 3"),
+		);
+
+		assert_eq!(
+			coup.bots[0].interface.get_name(),
+			String::from("TestBoton_challenge_action_round")
+		);
+		assert_eq!(
+			coup.bots[1].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_action_round,on_challenge_action_round"
+			)
+		);
+		assert_eq!(
+			coup.bots[2].interface.get_name(),
+			String::from("TestBoton_challenge_action_round")
+		);
+		assert_eq!(
+			coup.bots[3].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_action_round,on_challenge_action_round"
+			)
+		);
+		assert_eq!(
+			coup.bots[4].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_action_round,on_challenge_action_round"
+			)
+		);
+		assert_eq!(coup.history, vec![]);
+	}
+
+	#[test]
+	fn test_challenge_round_action() {
+		pub struct TestBot {
+			pub calls: std::cell::RefCell<Vec<String>>,
+		}
+		impl BotInterface for TestBot {
+			fn get_name(&self) -> String {
+				format!("TestBot{}", self.calls.borrow().join(","))
+			}
+			fn on_challenge_action_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				self.calls.borrow_mut().push(String::from("on_challenge_action_round"));
+				false
+			}
+		}
+		pub struct ChallengeBot {
+			pub calls: std::cell::RefCell<Vec<String>>,
+		}
+		impl BotInterface for ChallengeBot {
+			fn get_name(&self) -> String {
+				format!("ChallengeBot{}", self.calls.borrow().join(","))
+			}
+			fn on_challenge_action_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				self.calls.borrow_mut().push(String::from("on_challenge_action_round"));
+				true
+			}
+		}
+
+		let mut coup = Coup::new(vec![
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(ChallengeBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+		]);
+		coup.setup();
+
+		coup.challenge_round(
+			ChallengeRound::Action,
+			&Action::Swapping,
+			String::from("TestBot"),
+		);
+
+		assert_eq!(coup.bots[0].interface.get_name(), String::from("TestBot"));
+		assert_eq!(
+			coup.bots[1].interface.get_name(),
+			String::from("TestBoton_challenge_action_round")
+		);
+		assert_eq!(
+			coup.bots[2].interface.get_name(),
+			String::from("ChallengeBoton_challenge_action_round")
+		);
+		assert_eq!(coup.bots[3].interface.get_name(), String::from("TestBot"));
+		assert_eq!(coup.bots[4].interface.get_name(), String::from("TestBot"));
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeAmbassador {
+				by: String::from("ChallengeBot"),
+				target: String::from("TestBot")
+			}]
+		);
+
+		coup.challenge_round(
+			ChallengeRound::Action,
+			&Action::Swapping,
+			String::from("TestBot 4"),
+		);
+
+		assert_eq!(
+			coup.bots[0].interface.get_name(),
+			String::from("TestBoton_challenge_action_round")
+		);
+		assert_eq!(
+			coup.bots[1].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_action_round,on_challenge_action_round"
+			)
+		);
+		assert_eq!(
+			coup.bots[2].interface.get_name(),
+			String::from(
+				"ChallengeBoton_challenge_action_round,on_challenge_action_round"
+			)
+		);
+		assert_eq!(coup.bots[3].interface.get_name(), String::from("TestBot"));
+		assert_eq!(coup.bots[4].interface.get_name(), String::from("TestBot"));
+		assert_eq!(
+			coup.history,
+			vec![
+				History::ChallengeAmbassador {
+					by: String::from("ChallengeBot"),
+					target: String::from("TestBot")
+				},
+				History::ChallengeAmbassador {
+					by: String::from("ChallengeBot"),
+					target: String::from("TestBot 4")
+				}
+			]
+		);
+	}
+
+	#[test]
+	fn test_challenge_round_counter_no_challenge() {
+		pub struct TestBot {
+			pub calls: std::cell::RefCell<Vec<String>>,
+		}
+		impl BotInterface for TestBot {
+			fn get_name(&self) -> String {
+				format!("TestBot{}", self.calls.borrow().join(","))
+			}
+			fn on_challenge_counter_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				self
+					.calls
+					.borrow_mut()
+					.push(String::from("on_challenge_counter_round"));
+				false
+			}
+		}
+
+		let mut coup = Coup::new(vec![
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+		]);
+		coup.setup();
+
+		coup.challenge_round(
+			ChallengeRound::Counter,
+			&Action::ForeignAid,
+			String::from("TestBot 2"),
+		);
+
+		assert_eq!(
+			coup.bots[0].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(coup.bots[1].interface.get_name(), String::from("TestBot"));
+		assert_eq!(
+			coup.bots[2].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(
+			coup.bots[3].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(
+			coup.bots[4].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(coup.history, vec![]);
+
+		coup.challenge_round(
+			ChallengeRound::Counter,
+			&Action::ForeignAid,
+			String::from("TestBot 5"),
+		);
+
+		assert_eq!(
+			coup.bots[0].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_counter_round,on_challenge_counter_round"
+			)
+		);
+		assert_eq!(
+			coup.bots[1].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(
+			coup.bots[2].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_counter_round,on_challenge_counter_round"
+			)
+		);
+		assert_eq!(
+			coup.bots[3].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_counter_round,on_challenge_counter_round"
+			)
+		);
+		assert_eq!(
+			coup.bots[4].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(coup.history, vec![]);
+	}
+
+	#[test]
+	fn test_challenge_round_counter() {
+		pub struct TestBot {
+			pub calls: std::cell::RefCell<Vec<String>>,
+		}
+		impl BotInterface for TestBot {
+			fn get_name(&self) -> String {
+				format!("TestBot{}", self.calls.borrow().join(","))
+			}
+			fn on_challenge_counter_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				self
+					.calls
+					.borrow_mut()
+					.push(String::from("on_challenge_counter_round"));
+				false
+			}
+		}
+		pub struct ChallengeBot {
+			pub calls: std::cell::RefCell<Vec<String>>,
+		}
+		impl BotInterface for ChallengeBot {
+			fn get_name(&self) -> String {
+				format!("ChallengeBot{}", self.calls.borrow().join(","))
+			}
+			fn on_challenge_counter_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				self
+					.calls
+					.borrow_mut()
+					.push(String::from("on_challenge_counter_round"));
+				true
+			}
+		}
+
+		let mut coup = Coup::new(vec![
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(ChallengeBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+			Box::new(TestBot {
+				calls: std::cell::RefCell::new(vec![]),
+			}),
+		]);
+		coup.setup();
+
+		coup.challenge_round(
+			ChallengeRound::Counter,
+			&Action::ForeignAid,
+			String::from("TestBot 2"),
+		);
+
+		assert_eq!(
+			coup.bots[0].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(coup.bots[1].interface.get_name(), String::from("TestBot"));
+		assert_eq!(
+			coup.bots[2].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(
+			coup.bots[3].interface.get_name(),
+			String::from("ChallengeBoton_challenge_counter_round")
+		);
+		assert_eq!(coup.bots[4].interface.get_name(), String::from("TestBot"));
+		assert_eq!(
+			coup.history,
+			vec![History::CounterForeignAid {
+				by: String::from("ChallengeBot"),
+				target: String::from("TestBot 2")
+			}]
+		);
+
+		coup.challenge_round(
+			ChallengeRound::Counter,
+			&Action::ForeignAid,
+			String::from("TestBot 4"),
+		);
+
+		assert_eq!(
+			coup.bots[0].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_counter_round,on_challenge_counter_round"
+			)
+		);
+		assert_eq!(
+			coup.bots[1].interface.get_name(),
+			String::from("TestBoton_challenge_counter_round")
+		);
+		assert_eq!(
+			coup.bots[2].interface.get_name(),
+			String::from(
+				"TestBoton_challenge_counter_round,on_challenge_counter_round"
+			)
+		);
+		assert_eq!(
+			coup.bots[3].interface.get_name(),
+			String::from(
+				"ChallengeBoton_challenge_counter_round,on_challenge_counter_round"
+			)
+		);
+		assert_eq!(coup.bots[4].interface.get_name(), String::from("TestBot"));
+		assert_eq!(
+			coup.history,
+			vec![
+				History::CounterForeignAid {
+					by: String::from("ChallengeBot"),
+					target: String::from("TestBot 2")
+				},
+				History::CounterForeignAid {
+					by: String::from("ChallengeBot"),
+					target: String::from("TestBot 4")
+				}
+			]
+		);
+	}
 
 	// TODO: resolve_challenge
 	// TODO: resolve_counter
