@@ -6,9 +6,8 @@ use crate::{
 };
 
 /// The honest bot will try to take all actions it should take without being too
-/// smart or strategic thinking. It will act on it's own cards, counter other
-/// bots if they do something that it can counter based on its cards and will
-/// never bluff itself
+/// smart. It will act on it's own cards, counter other bots if they do
+/// something that it can counter based on its cards and will never bluff.
 pub struct HonestBot;
 
 impl BotInterface for HonestBot {
@@ -16,13 +15,9 @@ impl BotInterface for HonestBot {
 		String::from("HonestBot")
 	}
 
-	fn on_turn(&self, context: &Context) -> Action {
-		if context.coins >= 10 {
-			let target =
-				context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
-			Action::Coup(target.name.clone())
-		} else {
-			Action::Income
-		}
+	// TODO: implement honest bot
+
+	fn on_turn(&self, _context: &Context) -> Action {
+		Action::Income
 	}
 }

@@ -97,7 +97,7 @@ impl fmt::Debug for Bot {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		if f.alternate() {
 			writeln!(f, "Bot {{")?;
-			writeln!(f, "  name: {:?}", self.interface.get_name())?;
+			writeln!(f, "  name: {:?}", self.name)?;
 			writeln!(f, "  coins: {:?}", self.coins)?;
 			writeln!(f, "  cards: {:?}", self.cards)?;
 			write!(f, "}}")
@@ -105,9 +105,7 @@ impl fmt::Debug for Bot {
 			write!(
 				f,
 				"Bot {{ name: {:?}, coins: {:?}, cards: {:?} }}",
-				self.interface.get_name(),
-				self.coins,
-				self.cards
+				self.name, self.coins, self.cards
 			)
 		}
 	}
@@ -118,7 +116,7 @@ impl fmt::Display for Bot {
 		write!(
 			f,
 			"\x1b[33m[\x1b[1m{}\x1b[0m \x1b[31m{}{}\x1b[33m 💰{}]\x1b[39m",
-			self.interface.get_name(),
+			self.name,
 			"♥".repeat(self.cards.len()),
 			"♡".repeat(2 - self.cards.len()),
 			self.coins
@@ -388,6 +386,16 @@ impl Coup {
 			env!("CARGO_PKG_VERSION")
 		));
 
+		let bots = self
+			.playing_bots
+			.iter()
+			.map(|bot_index| format!("{}", self.bots[*bot_index]))
+			.collect::<Vec<String>>();
+		Self::log(format_args!(
+			"🤺  This rounds player:\n     {}\n",
+			bots.join("\n     "),
+		));
+
 		// Let's play
 		self.game_loop();
 	}
@@ -451,15 +459,25 @@ impl Coup {
 			} else {
 				self.turn + 1
 			};
-			// TODO: detect stale mate
+
+			if self.turn >= 1000 {
+				break;
+			}
 		}
 
-		self.set_score(vec![self.bots[self.playing_bots[0]].name.clone()]);
+		let winners = self
+			.playing_bots
+			.iter()
+			.map(|bot_index| self.bots[*bot_index].name.clone())
+			.collect::<Vec<String>>();
 
-		let winner = &self.bots[self.playing_bots[0]];
+		self.set_score(winners.clone());
+
 		Self::log(format_args!(
-			"\n 🎉🎉🎉 The winner is {} \x1b[90min {} moves\x1b[39m\n",
-			winner, self.moves
+			"\n 🎉🎉🎉 The winner{} \x1b[1m{}\x1b[0m \x1b[90min {} moves\x1b[39m\n",
+			if winners.len() > 1 { "s are" } else { " is" },
+			winners.join(" and "),
+			self.moves
 		));
 	}
 

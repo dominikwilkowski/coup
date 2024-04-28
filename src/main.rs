@@ -8,6 +8,11 @@ fn main() {
 		Box::new(StaticBot),
 		Box::new(HonestBot),
 		Box::new(StaticBot),
+		Box::new(StaticBot),
+		Box::new(StaticBot),
+		Box::new(StaticBot),
+		Box::new(StaticBot),
+		Box::new(StaticBot),
 		Box::new(HonestBot),
 	]);
 

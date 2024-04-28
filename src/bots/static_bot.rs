@@ -2,9 +2,9 @@
 
 use crate::bot::BotInterface;
 
-/// The static bot only takes [crate::Action::Income] on turns and eventually is forced
-/// by the engine to coup another bot. It won't challenge, counter or act on its
-/// own cards at all.
+/// The static bot only takes [crate::Action::Income] on turns and is eventually
+/// forced by the engine to coup another bot.
+/// It won't challenge, counter or act on its own cards at all.
 pub struct StaticBot;
 
 impl BotInterface for StaticBot {
