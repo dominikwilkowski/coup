@@ -1002,6 +1002,7 @@ impl Coup {
 
 		Self::log(format_args!("Starting \x1b[36m{}\x1b[39m rounds\n", rounds));
 
+		println!("🎲🎲 \x1b[1mBOARD\x1b[0m 🎲🎲\n");
 		for round in 0..rounds {
 			self.display_score();
 			// TODO: detect stop and record log in debug mode
