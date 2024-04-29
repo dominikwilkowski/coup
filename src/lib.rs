@@ -964,13 +964,14 @@ impl Coup {
 	}
 
 	fn display_score(&mut self) {
-		if self.round == 0 || self.round % 40 == 0 || self.round + 1 == self.rounds
+		if self.round == 0 || self.round % 50 == 0 || self.round + 1 == self.rounds
 		{
 			if self.round > 0 {
 				print!("\x1b[{}A\x1b[2K", self.score.len() + 1);
 			}
 
-			let done = (self.round as f64 / self.rounds as f64).ceil() * 100.0;
+			let done =
+				(((self.round + 1) as f64 / self.rounds as f64) * 100.0).round();
 			println!("\x1b[2K {:>3}% done", done);
 			self.score.sort_by(|(a, _), (b, _)| a.cmp(b));
 			self.score.iter().for_each(|(name, score)| {
@@ -980,6 +981,26 @@ impl Coup {
 				println!("\x1b[2K\x1b[90m {}%\x1b[39m  \x1b[31m{:>10}\x1b[39m  \x1b[33m{}\x1b[39m", percentage, score, name);
 			});
 		}
+	}
+
+	/// Format a number with separators to make it more human readable
+	fn format_number_with_separator(mut number: u64) -> String {
+		if number == 0 {
+			return String::from("0");
+		}
+		let mut result = String::new();
+		let mut count = 0;
+
+		while number != 0 {
+			if count % 3 == 0 && count != 0 {
+				result.insert(0, ',');
+			}
+			count += 1;
+			result.insert(0, (b'0' + (number % 10) as u8) as char);
+			number /= 10;
+		}
+
+		result
 	}
 
 	/// Play n number of rounds and tally up the score in the CLI
@@ -1000,9 +1021,12 @@ impl Coup {
 			env!("CARGO_PKG_VERSION")
 		));
 
-		Self::log(format_args!("Starting \x1b[36m{}\x1b[39m rounds\n", rounds));
+		Self::log(format_args!(
+			"Starting \x1b[36m{}\x1b[39m rounds\n",
+			Self::format_number_with_separator(rounds)
+		));
 
-		println!(" 🎲🎲 \x1b[1mBOARD\x1b[0m 🎲🎲\n");
+		println!(" 🎲🎲 \x1b[1mBOARD\x1b[0m 🎲🎲\n\x1b[?25l");
 		for round in 0..rounds {
 			self.display_score();
 			// TODO: detect stop and record log in debug mode
@@ -1010,7 +1034,7 @@ impl Coup {
 		}
 
 		println!(
-			"\n 🎉🎉🎉 The winner is: \x1b[1m{}\x1b[0m\n",
+			"\x1b[?25h\n 🎉🎉🎉 The winner is: \x1b[1m{}\x1b[0m\n",
 			self
 				.score
 				.iter()
@@ -2060,6 +2084,20 @@ mod tests {
 	// TODO: resolve_challenge
 	// TODO: resolve_counter
 	// TODO: display_score
+
+	#[test]
+	fn test_format_number_with_separator() {
+		assert_eq!(Coup::format_number_with_separator(0), String::from("0"));
+		assert_eq!(Coup::format_number_with_separator(1), String::from("1"));
+		assert_eq!(Coup::format_number_with_separator(99), String::from("99"));
+		assert_eq!(Coup::format_number_with_separator(999), String::from("999"));
+		assert_eq!(Coup::format_number_with_separator(1234), String::from("1,234"));
+		assert_eq!(
+			Coup::format_number_with_separator(9876543210),
+			String::from("9,876,543,210")
+		);
+	}
+
 	// TODO: looping
 
 	// *******************************| Actions |****************************** //
