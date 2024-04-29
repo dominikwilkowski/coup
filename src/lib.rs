@@ -20,7 +20,7 @@ pub enum Card {
 	/// - [Action::Stealing] – Take two coins from another player
 	/// - [Counter::Stealing] – Block someone from stealing coins from you
 	Captain,
-	/// - [Counter::Assassination] – Block an assassination attempt against yourself.
+	/// - [Counter::Assassination] – Block an assassination attempt against yourself
 	Contessa,
 	/// - [Action::Tax] – Take three coins from the treasury<br>
 	/// - [Counter::ForeignAid] – Block someone from taking foreign aid
@@ -32,7 +32,8 @@ pub enum Card {
 pub enum Action {
 	/// Take this action with your [Card::Assassin]
 	Assassination(String),
-	/// This standard action can be taken at any time as long as you have at least 7 coin
+	/// This standard action can be taken at any time as long as you have at least
+	/// 7 coin
 	Coup(String),
 	/// This standard action can be taken at any time
 	ForeignAid,
@@ -46,7 +47,8 @@ pub enum Action {
 	Tax,
 }
 
-/// Counters are played if something happens that can be countered with a [Card] you have
+/// Counters are played if something happens that can be countered with a
+/// [Card] you have
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Counter {
 	/// Block an assassination with your [Card::Contessa]
@@ -81,6 +83,10 @@ pub enum History {
 	CounterAssassination { by: String, target: String },
 	CounterForeignAid { by: String, target: String },
 	CounterStealing { by: String, target: String },
+
+	CounterChallengeContessa { by: String, target: String },
+	CounterChallengeDuke { by: String, target: String },
+	CounterChallengeCaptainAmbassedor { by: String, target: String },
 }
 
 /// The score of the game for all bots
@@ -559,7 +565,8 @@ impl Coup {
 				);
 
 				if counter.is_some() {
-					// The bot target_name is countering the action so we now ask the table if anyone would like to challenge this counter
+					// The bot target_name is countering the action so we now ask the
+					// table if anyone would like to challenge this counter
 					if let Some(counter_challenge) = self.challenge_round(
 						ChallengeRound::Counter,
 						&action,
@@ -577,7 +584,7 @@ impl Coup {
 							),
 						};
 						// The bot counter_challenge.by is challenging this action
-						let success = self.resolve_counter(
+						let success = self.resolve_counter_challenge(
 							counter_card,
 							target_name.clone(),
 							counter_challenge.clone(),
@@ -594,7 +601,8 @@ impl Coup {
 							),
 						};
 						if success {
-							// The challenge was successful so the player who played the counter get a penalty
+							// The challenge was successful so the player who played the
+							// counter get a penalty
 							self.penalize_bot(
 								target_name,
 								&format!(
@@ -603,7 +611,8 @@ impl Coup {
 								),
 							);
 						} else {
-							// The challenge was unsuccessful so the player who challenged the counter get a penalty and the action is performed
+							// The challenge was unsuccessful so the player who challenged the
+							// counter get a penalty and the action is performed
 							self.penalize_bot(
 								counter_challenge,
 								&format!("{} really did have the {} to block stealing so its challenge was unsuccessful", playing_bot_name, counter_card_name),
@@ -720,23 +729,23 @@ impl Coup {
 		// THE COUNTER CHALLENGE ROUND
 		// On Action::ForeignAid
 		// Does anyone want to counter this action?
-		let mut target_name = String::new();
+		let mut counterer_name = String::new();
 		for bot in self.bots.iter() {
 			// skipping the challenger
 			if bot.name.clone() == playing_bot_name.clone() {
 				continue;
 			}
 
-			let challenging = bot.interface.on_challenge_counter_round(
+			let countering = bot.interface.on_challenge_counter_round(
 				&Action::ForeignAid,
 				playing_bot_name.clone(),
 				&self.get_context(playing_bot_name.clone()),
 			);
 
-			if challenging {
-				target_name = bot.name.clone();
+			if countering {
+				counterer_name = bot.name.clone();
 				self.history.push(History::CounterForeignAid {
-					by: target_name.clone(),
+					by: counterer_name.clone(),
 					target: playing_bot_name.clone(),
 				});
 				break;
@@ -744,7 +753,7 @@ impl Coup {
 		}
 
 		let counter =
-			self.get_bot_by_name(target_name.clone()).interface.on_counter(
+			self.get_bot_by_name(counterer_name.clone()).interface.on_counter(
 				&Action::ForeignAid,
 				playing_bot_name.clone(),
 				&self.get_context(playing_bot_name.clone()),
@@ -754,39 +763,42 @@ impl Coup {
 			format_args!(
 				"🛑  {} was countered by {}",
 				self.get_bot_by_name(playing_bot_name.clone()),
-				self.get_bot_by_name(target_name.clone()),
+				self.get_bot_by_name(counterer_name.clone()),
 			),
 			self.log,
 		);
 
 		if counter.is_some() {
-			// The bot target_name is countering the action so we now ask the table if anyone would like to challenge this counter
+			// The bot counterer_name is countering the action so we now ask the table
+			// if anyone would like to challenge this counter
 			if let Some(counter_challenge) = self.challenge_round(
 				ChallengeRound::Counter,
 				&Action::ForeignAid,
-				target_name.clone(),
+				counterer_name.clone(),
 			) {
 				// The bot counter_challenge.by is challenging this action
-				let success = self.resolve_counter(
+				let success = self.resolve_counter_challenge(
 					Counter::ForeignAid,
-					target_name.clone(),
+					counterer_name.clone(),
 					counter_challenge.clone(),
 				);
 				let counter_card_name = "Duke";
 				if success {
-					// The challenge was successful so the player who played the counter get a penalty
+					// The challenge was successful so the player who played the counter
+					// get a penalty
 					self.penalize_bot(
-						target_name,
+						counterer_name,
 						&format!(
 							"it didn't have the {} to block stealing",
 							counter_card_name
 						),
 					);
 				} else {
-					// The challenge was unsuccessful so the player who challenged the counter get a penalty and the action is performed
+					// The challenge was unsuccessful so the player who challenged the
+					// counter get a penalty and the action is performed
 					self.penalize_bot(
 						counter_challenge,
-						&format!("{} really did have the {} to block stealing so its challenge was unsuccessful", playing_bot_name, counter_card_name),
+						&format!("{} really did have the {} to block foreign aid so its challenge was unsuccessful", playing_bot_name, counter_card_name),
 					);
 					self.action_foraign_aid();
 				}
@@ -924,7 +936,7 @@ impl Coup {
 		if player.cards.contains(&card) {
 			Self::log(
 				format_args!(
-					"👍  The challenge was successful because {} didn't have the {:?}",
+					"👎  The challenge was unsuccessful because {} did have the {:?}",
 					player, card
 				),
 				self.log,
@@ -934,7 +946,7 @@ impl Coup {
 		} else {
 			Self::log(
 				format_args!(
-					"👎  The challenge was unsuccessful because {} did have the {:?}",
+					"👍  The challenge was successful because {} didn't have the {:?}",
 					player, card
 				),
 				self.log,
@@ -945,24 +957,24 @@ impl Coup {
 	}
 
 	// A bot is countering another bots action against them
-	fn resolve_counter(
+	fn resolve_counter_challenge(
 		&mut self,
 		counter: Counter,
 		counterer: String,
 		challenger: String,
 	) -> bool {
 		self.history.push(match counter {
-			Counter::Assassination => History::CounterAssassination {
-				by: counterer.clone(),
-				target: challenger.clone(),
+			Counter::Assassination => History::CounterChallengeContessa {
+				by: challenger.clone(),
+				target: counterer.clone(),
 			},
-			Counter::ForeignAid => History::CounterForeignAid {
-				by: counterer.clone(),
-				target: challenger.clone(),
+			Counter::ForeignAid => History::CounterChallengeDuke {
+				by: challenger.clone(),
+				target: counterer.clone(),
 			},
-			Counter::Stealing => History::CounterStealing {
-				by: counterer.clone(),
-				target: challenger.clone(),
+			Counter::Stealing => History::CounterChallengeCaptainAmbassedor {
+				by: challenger.clone(),
+				target: counterer.clone(),
 			},
 		});
 
@@ -983,22 +995,22 @@ impl Coup {
 		if cards.iter().any(|&card| counterer.cards.contains(&card)) {
 			Self::log(
 				format_args!(
-					"👍  The counter was successful because {} didn't have the {:?}",
-					counterer, card_string
-				),
-				self.log,
-			);
-			self.card_loss(counterer.name.clone());
-			false
-		} else {
-			Self::log(
-				format_args!(
 					"👎  The counter was unsuccessful because {} did have the {:?}",
 					counterer, card_string
 				),
 				self.log,
 			);
 			self.card_loss(challenger.name.clone());
+			false
+		} else {
+			Self::log(
+				format_args!(
+					"👍  The counter was successful because {} didn't have the {:?}",
+					counterer, card_string
+				),
+				self.log,
+			);
+			self.card_loss(counterer.name.clone());
 			true
 		}
 	}
@@ -1384,7 +1396,7 @@ mod tests {
 		assert_eq!(coup.moves, 0);
 	}
 
-	// TODO: log
+	// TODO: test_log
 
 	#[test]
 	fn test_get_bot_by_name() {
@@ -1583,7 +1595,7 @@ mod tests {
 		assert_eq!(coup.discard_pile, vec![Card::Captain, Card::Assassin]);
 	}
 
-	// TODO: penalize_bot
+	// TODO: test_penalize_bot
 
 	#[test]
 	fn test_target_not_found() {
@@ -1681,11 +1693,11 @@ mod tests {
 		assert_eq!(coup.discard_pile, vec![Card::Ambassador]);
 	}
 
-	// TODO: play
-	// TODO: game_loop
-	// TODO: challenge_and_counter_round
-	// TODO: challenge_round_only
-	// TODO: counter_round_only
+	// TODO: test_play
+	// TODO: test_game_loop
+	// TODO: test_challenge_and_counter_round
+	// TODO: test_challenge_round_only
+	// TODO: test_counter_round_only
 
 	#[test]
 	fn test_challenge_round_action_no_challenge() {
@@ -2329,12 +2341,176 @@ mod tests {
 		coup.history = vec![];
 	}
 
-	// TODO: resolve_counter
-	// TODO: display_score
+	#[test]
+	fn test_resolve_counter_challenge_successful() {
+		let mut coup = Coup::new(vec![Box::new(StaticBot), Box::new(StaticBot)]);
+		coup.setup();
+
+		// Assassination
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_counter_challenge(
+			Counter::Assassination,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, true);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador, Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::CounterChallengeContessa {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Foreign Aid
+		coup.bots[0].cards = vec![Card::Assassin, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_counter_challenge(
+			Counter::ForeignAid,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, true);
+		assert_eq!(coup.bots[0].cards, vec![Card::Assassin]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador, Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::CounterChallengeDuke {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Stealing
+		coup.bots[0].cards = vec![Card::Assassin, Card::Contessa];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_counter_challenge(
+			Counter::Stealing,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, true);
+		assert_eq!(coup.bots[0].cards, vec![Card::Assassin]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador, Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::CounterChallengeCaptainAmbassedor {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+	}
+
+	#[test]
+	fn test_resolve_counter_challenge_unsuccessful() {
+		let mut coup = Coup::new(vec![Box::new(StaticBot), Box::new(StaticBot)]);
+		coup.setup();
+
+		// Assassination
+		coup.bots[0].cards = vec![Card::Assassin, Card::Contessa];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_counter_challenge(
+			Counter::Assassination,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, false);
+		assert_eq!(coup.bots[0].cards, vec![Card::Assassin, Card::Contessa]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::CounterChallengeContessa {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Foreign Aid
+		coup.bots[0].cards = vec![Card::Duke, Card::Contessa];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_counter_challenge(
+			Counter::ForeignAid,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, false);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Contessa]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::CounterChallengeDuke {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Stealing with Captain
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_counter_challenge(
+			Counter::Stealing,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, false);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::CounterChallengeCaptainAmbassedor {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Stealing with Ambassador
+		coup.bots[0].cards = vec![Card::Duke, Card::Ambassador];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_counter_challenge(
+			Counter::Stealing,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, false);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Ambassador]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::CounterChallengeCaptainAmbassedor {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+	}
+
+	// TODO: test_display_score
 
 	#[test]
 	fn test_format_number_with_separator() {
 		assert_eq!(Coup::format_number_with_separator(0), String::from("0"));
+		assert_eq!(Coup::format_number_with_separator(00000), String::from("0"));
 		assert_eq!(Coup::format_number_with_separator(1), String::from("1"));
 		assert_eq!(Coup::format_number_with_separator(99), String::from("99"));
 		assert_eq!(Coup::format_number_with_separator(999), String::from("999"));
@@ -2345,7 +2521,7 @@ mod tests {
 		);
 	}
 
-	// TODO: looping
+	// TODO: test_looping
 
 	// *******************************| Actions |****************************** //
 	#[test]
