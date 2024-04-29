@@ -134,6 +134,7 @@ pub struct Coup {
 	score: Score,
 	turn: usize,
 	moves: usize,
+	log: bool,
 	rounds: u64,
 	round: u64,
 }
@@ -178,6 +179,7 @@ impl Coup {
 			score,
 			turn: 0,
 			moves: 0,
+			log: true,
 			round: 0,
 			rounds: 0,
 		}
@@ -231,12 +233,13 @@ impl Coup {
 		self.deck = deck;
 
 		self.discard_pile = vec![];
+		self.history = vec![];
 		self.turn = 0;
 		self.moves = 0;
 	}
 
-	fn log(message: std::fmt::Arguments) {
-		if std::env::var("NOLOG").is_err() {
+	fn log(message: std::fmt::Arguments, logging: bool) {
+		if logging {
 			println!(" {:?}", message);
 		}
 	}
@@ -284,7 +287,7 @@ impl Coup {
 			if bot.name == name {
 				let lost_card = bot.interface.on_card_loss(&context);
 				if !bot.cards.contains(&lost_card) {
-					Self::log(format_args!("🚨  {} is being penalized because \x1b[33mit discarded a card({:?}) it didn't have\x1b[39m", bot, lost_card));
+					Self::log(format_args!("🚨  {} is being penalized because \x1b[33mit discarded a card({:?}) it didn't have\x1b[39m", bot, lost_card), self.log);
 
 					let card = bot.cards.pop().unwrap();
 					let mut lost_cards = format!("{:?}", card);
@@ -298,7 +301,7 @@ impl Coup {
 					}
 
 					bot.cards = vec![];
-					Self::log(format_args!("☠️   {} has lost the \x1b[33m{:?}\x1b[39m", bot, lost_cards));
+					Self::log(format_args!("☠️   {} has lost the \x1b[33m{:?}\x1b[39m", bot, lost_cards), self.log);
 				} else {
 					if let Some(index) = bot.cards.iter().position(|&c| c == lost_card) {
 						bot.cards.remove(index);
@@ -314,18 +317,21 @@ impl Coup {
 						},
 						bot,
 						lost_card
-					));
+					), self.log);
 				}
 			}
 		});
 	}
 
 	fn penalize_bot(&mut self, name: String, reason: &str) {
-		Self::log(format_args!(
-			"🚨  {} is being penalized because \x1b[33m{}\x1b[39m",
-			self.get_bot_by_name(name.clone()),
-			reason
-		));
+		Self::log(
+			format_args!(
+				"🚨  {} is being penalized because \x1b[33m{}\x1b[39m",
+				self.get_bot_by_name(name.clone()),
+				reason
+			),
+			self.log,
+		);
 		self.card_loss(name);
 	}
 
@@ -335,8 +341,12 @@ impl Coup {
 
 	fn set_score(&mut self, winners: Vec<String>) {
 		let winner_count = winners.len() as f64;
-		let loser_count = self.playing_bots.len() as f64 - winner_count;
-		let loser_score = -1.0 / (self.playing_bots.len() as f64 - 1.0);
+		let loser_count = if self.bots.len() > 6 {
+			6.0
+		} else {
+			self.bots.len() as f64
+		} - winner_count;
+		let loser_score = -1.0 / loser_count;
 		let winner_score = -((loser_score * loser_count) / winner_count);
 
 		self.score = self
@@ -354,10 +364,13 @@ impl Coup {
 
 	// We take a card from a bot and replace it with a new one from the deck
 	fn swap_card(&mut self, card: Card, swopee: String) {
-		Self::log(format_args!(
-			"↬  {} is swapping its card for a new card from the deck",
-			self.get_bot_by_name(swopee.clone())
-		));
+		Self::log(
+			format_args!(
+				"↬  {} is swapping its card for a new card from the deck",
+				self.get_bot_by_name(swopee.clone())
+			),
+			self.log,
+		);
 		for bot in self.bots.iter_mut() {
 			if bot.name == swopee.clone() {
 				if let Some(index) = bot.cards.iter().position(|&c| c == card) {
@@ -384,21 +397,24 @@ impl Coup {
 			spaceless: true,
 			..Options::default()
 		});
-		Self::log(format_args!(
-			"\n\n{}\x1b[4Dv{}\n\n",
-			output.text,
-			env!("CARGO_PKG_VERSION")
-		));
+		Self::log(
+			format_args!(
+				"\n\n{}\x1b[4Dv{}\n\n",
+				output.text,
+				env!("CARGO_PKG_VERSION")
+			),
+			self.log,
+		);
 
 		let bots = self
 			.playing_bots
 			.iter()
 			.map(|bot_index| format!("{}", self.bots[*bot_index]))
 			.collect::<Vec<String>>();
-		Self::log(format_args!(
-			"🤺  This rounds player:\n     {}\n",
-			bots.join("\n     "),
-		));
+		Self::log(
+			format_args!("🤺  This rounds player:\n     {}\n", bots.join("\n     "),),
+			self.log,
+		);
 
 		// Let's play
 		self.game_loop();
@@ -477,12 +493,15 @@ impl Coup {
 
 		self.set_score(winners.clone());
 
-		Self::log(format_args!(
-			"\n 🎉🎉🎉 The winner{} \x1b[1m{}\x1b[0m \x1b[90min {} moves\x1b[39m\n",
-			if winners.len() > 1 { "s are" } else { " is" },
-			winners.join(" and "),
-			self.moves
-		));
+		Self::log(
+			format_args!(
+				"\n 🎉🎉🎉 The winner{} \x1b[1m{}\x1b[0m \x1b[90min {} moves\x1b[39m\n",
+				if winners.len() > 1 { "s are" } else { " is" },
+				winners.join(" and "),
+				self.moves
+			),
+			self.log,
+		);
 	}
 
 	fn challenge_and_counter_round(
@@ -530,11 +549,14 @@ impl Coup {
 						&self.get_context(target_name.clone()),
 					);
 
-				Self::log(format_args!(
-					"🛑  {} was countered by {}",
-					self.get_bot_by_name(playing_bot_name.clone()),
-					self.get_bot_by_name(target_name.clone()),
-				));
+				Self::log(
+					format_args!(
+						"🛑  {} was countered by {}",
+						self.get_bot_by_name(playing_bot_name.clone()),
+						self.get_bot_by_name(target_name.clone()),
+					),
+					self.log,
+				);
 
 				if counter.is_some() {
 					// The bot target_name is countering the action so we now ask the table if anyone would like to challenge this counter
@@ -728,11 +750,14 @@ impl Coup {
 				&self.get_context(playing_bot_name.clone()),
 			);
 
-		Self::log(format_args!(
-			"🛑  {} was countered by {}",
-			self.get_bot_by_name(playing_bot_name.clone()),
-			self.get_bot_by_name(target_name.clone()),
-		));
+		Self::log(
+			format_args!(
+				"🛑  {} was countered by {}",
+				self.get_bot_by_name(playing_bot_name.clone()),
+				self.get_bot_by_name(target_name.clone()),
+			),
+			self.log,
+		);
 
 		if counter.is_some() {
 			// The bot target_name is countering the action so we now ask the table if anyone would like to challenge this counter
@@ -840,11 +865,14 @@ impl Coup {
 						},
 					},
 				});
-				Self::log(format_args!(
-					"❓  {} was challenged by {}",
-					self.get_bot_by_name(by),
-					bot
-				));
+				Self::log(
+					format_args!(
+						"❓  {} was challenged by {}",
+						self.get_bot_by_name(by),
+						bot
+					),
+					self.log,
+				);
 				return Some(bot.name.clone());
 			}
 		}
@@ -894,17 +922,23 @@ impl Coup {
 		};
 
 		if player.cards.contains(&card) {
-			Self::log(format_args!(
-				"👍  The challenge was successful because {} didn't have the {:?}",
-				player, card
-			));
+			Self::log(
+				format_args!(
+					"👍  The challenge was successful because {} didn't have the {:?}",
+					player, card
+				),
+				self.log,
+			);
 			self.card_loss(player.name.clone());
 			false
 		} else {
-			Self::log(format_args!(
-				"👎  The challenge was unsuccessful because {} did have the {:?}",
-				player, card
-			));
+			Self::log(
+				format_args!(
+					"👎  The challenge was unsuccessful because {} did have the {:?}",
+					player, card
+				),
+				self.log,
+			);
 			self.card_loss(challenger.name.clone());
 			true
 		}
@@ -947,24 +981,31 @@ impl Coup {
 			.join(" and the ");
 
 		if cards.iter().any(|&card| counterer.cards.contains(&card)) {
-			Self::log(format_args!(
-				"👍  The counter was successful because {} didn't have the {:?}",
-				counterer, card_string
-			));
+			Self::log(
+				format_args!(
+					"👍  The counter was successful because {} didn't have the {:?}",
+					counterer, card_string
+				),
+				self.log,
+			);
 			self.card_loss(counterer.name.clone());
 			false
 		} else {
-			Self::log(format_args!(
-				"👎  The counter was unsuccessful because {} did have the {:?}",
-				counterer, card_string
-			));
+			Self::log(
+				format_args!(
+					"👎  The counter was unsuccessful because {} did have the {:?}",
+					counterer, card_string
+				),
+				self.log,
+			);
 			self.card_loss(challenger.name.clone());
 			true
 		}
 	}
 
 	fn display_score(&mut self) {
-		if self.round == 0 || self.round % 50 == 0 || self.round + 1 == self.rounds
+		let fps = (self.rounds as f64 / 1000.0).max(1.0) as u64;
+		if self.round == 0 || self.round % fps == 0 || self.round + 1 == self.rounds
 		{
 			if self.round > 0 {
 				print!("\x1b[{}A\x1b[2K", self.score.len() + 1);
@@ -973,12 +1014,12 @@ impl Coup {
 			let done =
 				(((self.round + 1) as f64 / self.rounds as f64) * 100.0).round();
 			println!("\x1b[2K {:>3}% done", done);
-			self.score.sort_by(|(a, _), (b, _)| a.cmp(b));
+			self.score.sort_by(|(_, a), (_, b)| b.partial_cmp(a).unwrap());
 			self.score.iter().for_each(|(name, score)| {
 				let percentage = if self.round > 0 {
 					format!("{:.3}", (score * 100.0) / self.round as f64)
-				} else { String::from("-") };
-				println!("\x1b[2K\x1b[90m {}%\x1b[39m  \x1b[31m{:>10}\x1b[39m  \x1b[33m{}\x1b[39m", percentage, score, name);
+				} else { String::from("0") };
+				println!("\x1b[2K\x1b[90m {:>8}%\x1b[39m  \x1b[31m{:>15.5}\x1b[39m  \x1b[33m{}\x1b[39m", percentage, score, name);
 			});
 		}
 	}
@@ -1005,6 +1046,7 @@ impl Coup {
 	/// Play n number of rounds and tally up the score in the CLI
 	pub fn looping(&mut self, rounds: u64) {
 		self.setup();
+		self.log = false;
 		self.rounds = rounds;
 
 		// Logo
@@ -1014,22 +1056,21 @@ impl Coup {
 			spaceless: true,
 			..Options::default()
 		});
-		Self::log(format_args!(
-			"\n\n{}\x1b[4Dv{}\n\n",
-			output.text,
-			env!("CARGO_PKG_VERSION")
-		));
+		println!("\n\n{}\x1b[4Dv{}\n\n", output.text, env!("CARGO_PKG_VERSION"));
 
-		Self::log(format_args!(
-			"Starting \x1b[36m{}\x1b[39m rounds\n",
+		println!(
+			"Starting \x1b[36m{}\x1b[39m rounds",
 			Self::format_number_with_separator(rounds)
-		));
+		);
 
-		println!(" 🎲🎲 \x1b[1mBOARD\x1b[0m 🎲🎲\n\x1b[?25l");
+		println!(" ╔═════════════════╗\n ║ 🎲🎲 \x1b[1mBOARD\x1b[0m 🎲🎲 ║\n ╚═════════════════╝\x1b[?25l");
+		self.display_score();
 		for round in 0..rounds {
-			self.display_score();
+			self.setup();
+			self.game_loop();
 			// TODO: detect stop and record log in debug mode
 			self.round = round + 1;
+			self.display_score();
 		}
 
 		println!(
@@ -1069,11 +1110,14 @@ impl Coup {
 				by: playing_bot_name.clone(),
 				target: target_bot_name.clone(),
 			});
-			Self::log(format_args!(
-				"🃏  {} assassinates {} with the \x1b[33mAssassin\x1b[39m",
-				self.bots[self.playing_bots[self.turn]],
-				self.get_bot_by_name(target)
-			));
+			Self::log(
+				format_args!(
+					"🃏  {} assassinates {} with the \x1b[33mAssassin\x1b[39m",
+					self.bots[self.playing_bots[self.turn]],
+					self.get_bot_by_name(target)
+				),
+				self.log,
+			);
 			self.card_loss(target_bot_name);
 		}
 	}
@@ -1101,11 +1145,14 @@ impl Coup {
 				by: playing_bot_name.clone(),
 				target: target_bot_name.clone(),
 			});
-			Self::log(format_args!(
-				"🃏  {} \x1b[33mcoups\x1b[39m {}",
-				self.bots[self.playing_bots[self.turn]],
-				self.get_bot_by_name(target)
-			));
+			Self::log(
+				format_args!(
+					"🃏  {} \x1b[33mcoups\x1b[39m {}",
+					self.bots[self.playing_bots[self.turn]],
+					self.get_bot_by_name(target)
+				),
+				self.log,
+			);
 			self.card_loss(target_bot_name);
 		}
 	}
@@ -1117,10 +1164,13 @@ impl Coup {
 		self.history.push(History::ActionForeignAid {
 			by: self.bots[self.playing_bots[self.turn]].name.clone(),
 		});
-		Self::log(format_args!(
-			"🃏  {} takes \x1b[33mforeign aid\x1b[39m",
-			self.bots[self.playing_bots[self.turn]],
-		));
+		Self::log(
+			format_args!(
+				"🃏  {} takes \x1b[33mforeign aid\x1b[39m",
+				self.bots[self.playing_bots[self.turn]],
+			),
+			self.log,
+		);
 	}
 
 	fn action_swapping(&mut self) {
@@ -1165,10 +1215,13 @@ impl Coup {
 			self.history.push(History::ActionSwapping {
 				by: self.bots[self.playing_bots[self.turn]].name.clone(),
 			});
-			Self::log(format_args!(
-				"🃏  {} swaps cards with \x1b[33mthe Ambassador\x1b[39m",
-				self.bots[self.playing_bots[self.turn]]
-			));
+			Self::log(
+				format_args!(
+					"🃏  {} swaps cards with \x1b[33mthe Ambassador\x1b[39m",
+					self.bots[self.playing_bots[self.turn]]
+				),
+				self.log,
+			);
 		}
 	}
 
@@ -1180,10 +1233,13 @@ impl Coup {
 		self.history.push(History::ActionIncome {
 			by: self.bots[self.playing_bots[self.turn]].name.clone(),
 		});
-		Self::log(format_args!(
-			"🃏  {} takes \x1b[33ma coin\x1b[39m",
-			self.bots[self.playing_bots[self.turn]]
-		));
+		Self::log(
+			format_args!(
+				"🃏  {} takes \x1b[33ma coin\x1b[39m",
+				self.bots[self.playing_bots[self.turn]]
+			),
+			self.log,
+		);
 	}
 
 	fn action_stealing(&mut self, target: String) {
@@ -1202,11 +1258,14 @@ impl Coup {
 			by: self.bots[self.playing_bots[self.turn]].name.clone(),
 			target: self.get_bot_by_name(target.clone()).name.clone(),
 		});
-		Self::log(format_args!(
-			"🃏  {} \x1b[33msteals 2 coins\x1b[39m from {}",
-			self.bots[self.playing_bots[self.turn]],
-			self.get_bot_by_name(target),
-		));
+		Self::log(
+			format_args!(
+				"🃏  {} \x1b[33msteals 2 coins\x1b[39m from {}",
+				self.bots[self.playing_bots[self.turn]],
+				self.get_bot_by_name(target),
+			),
+			self.log,
+		);
 	}
 
 	fn action_tax(&mut self) {
@@ -1216,10 +1275,13 @@ impl Coup {
 		self.history.push(History::ActionTax {
 			by: self.bots[self.playing_bots[self.turn]].name.clone(),
 		});
-		Self::log(format_args!(
-			"🃏  {} takes tax with the \x1b[33mDuke\x1b[39m",
-			self.bots[self.playing_bots[self.turn]],
-		));
+		Self::log(
+			format_args!(
+				"🃏  {} takes tax with the \x1b[33mDuke\x1b[39m",
+				self.bots[self.playing_bots[self.turn]],
+			),
+			self.log,
+		);
 	}
 }
 
@@ -1588,11 +1650,11 @@ mod tests {
 		assert_eq!(
 			coup.score,
 			vec![
-				(String::from("StaticBot"), 0.375),
-				(String::from("StaticBot 2"), 0.375),
-				(String::from("StaticBot 3"), -0.25),
-				(String::from("StaticBot 4"), -0.25),
-				(String::from("StaticBot 5"), -0.25),
+				(String::from("StaticBot"), 0.5),
+				(String::from("StaticBot 2"), 0.5),
+				(String::from("StaticBot 3"), -0.3333333333333333),
+				(String::from("StaticBot 4"), -0.3333333333333333),
+				(String::from("StaticBot 5"), -0.3333333333333333),
 			]
 		);
 	}
