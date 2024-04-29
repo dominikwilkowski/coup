@@ -983,7 +983,6 @@ impl Coup {
 		}
 	}
 
-	/// Format a number with separators to make it more human readable
 	fn format_number_with_separator(mut number: u64) -> String {
 		if number == 0 {
 			return String::from("0");
