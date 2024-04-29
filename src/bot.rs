@@ -54,8 +54,7 @@ pub trait BotInterface {
 	/// You can use this method internally as well when you decide to coup on
 	/// your own
 	fn on_auto_coup(&self, context: &Context) -> String {
-		let target = context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
-		target.name.clone()
+		context.other_bots[0].name.clone()
 	}
 
 	/// Called when another bot played an action and everyone gets to decide
