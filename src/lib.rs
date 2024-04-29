@@ -555,6 +555,25 @@ impl Coup {
 						&self.get_context(target_name.clone()),
 					);
 
+				match action {
+					Action::Assassination(_) => {
+						self.history.push(History::CounterAssassination {
+							by: target_name.clone(),
+							target: playing_bot_name.clone(),
+						})
+					},
+					Action::Stealing(_) => self.history.push(History::CounterStealing {
+						by: target_name.clone(),
+						target: playing_bot_name.clone(),
+					}),
+					Action::Coup(_)
+					| Action::ForeignAid
+					| Action::Swapping
+					| Action::Income
+					| Action::Tax => {
+						unreachable!("Challenge and counter not called on other actions")
+					},
+				};
 				Self::log(
 					format_args!(
 						"🛑  {} was countered by {}",
@@ -744,10 +763,6 @@ impl Coup {
 
 			if countering {
 				counterer_name = bot.name.clone();
-				self.history.push(History::CounterForeignAid {
-					by: counterer_name.clone(),
-					target: playing_bot_name.clone(),
-				});
 				break;
 			}
 		}
@@ -759,6 +774,10 @@ impl Coup {
 				&self.get_context(playing_bot_name.clone()),
 			);
 
+		self.history.push(History::CounterForeignAid {
+			by: counterer_name.clone(),
+			target: playing_bot_name.clone(),
+		});
 		Self::log(
 			format_args!(
 				"🛑  {} was countered by {}",
