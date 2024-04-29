@@ -19,13 +19,13 @@ impl BotInterface for HonestBot {
 		if context.cards.contains(&Card::Assassin) && context.coins >= 3 {
 			let target =
 				context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
-			return Action::Assassination(target.name.clone());
+			Action::Assassination(target.name.clone())
 		} else if context.cards.contains(&Card::Captain) {
 			let target =
 				context.other_bots.iter().max_by_key(|bot| bot.coins).unwrap();
-			return Action::Stealing(target.name.clone());
+			Action::Stealing(target.name.clone())
 		} else if context.cards.contains(&Card::Duke) {
-			return Action::Tax;
+			Action::Tax
 		} else {
 			Action::Income
 		}
