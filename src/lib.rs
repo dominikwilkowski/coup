@@ -134,6 +134,8 @@ pub struct Coup {
 	score: Score,
 	turn: usize,
 	moves: usize,
+	rounds: u64,
+	round: u64,
 }
 
 impl Coup {
@@ -176,6 +178,8 @@ impl Coup {
 			score,
 			turn: 0,
 			moves: 0,
+			round: 0,
+			rounds: 0,
 		}
 	}
 
@@ -959,9 +963,62 @@ impl Coup {
 		}
 	}
 
+	fn display_score(&mut self) {
+		if self.round == 0 || self.round % 40 == 0 || self.round + 1 == self.rounds
+		{
+			if self.round > 0 {
+				print!("\x1b[{}A\x1b[2K", self.score.len() + 1);
+			}
+
+			let done = (self.round as f64 / self.rounds as f64).ceil() * 100.0;
+			println!("\x1b[2K {:>3}% done", done);
+			self.score.sort_by(|(a, _), (b, _)| a.cmp(b));
+			self.score.iter().for_each(|(name, score)| {
+				let percentage = if self.round > 0 {
+					format!("{:.3}", (score * 100.0) / self.round as f64)
+				} else { String::from("-") };
+				println!("\x1b[2K\x1b[90m {}%\x1b[39m  \x1b[31m{:>10}\x1b[39m  \x1b[33m{}\x1b[39m", percentage, score, name);
+			});
+		}
+	}
+
 	/// Play n number of rounds and tally up the score in the CLI
-	pub fn _looping(&mut self) {
-		todo!();
+	pub fn looping(&mut self, rounds: u64) {
+		self.setup();
+		self.rounds = rounds;
+
+		// Logo
+		let output = render(Options {
+			text: String::from("Coup"),
+			colors: vec![Colors::White, Colors::Yellow],
+			spaceless: true,
+			..Options::default()
+		});
+		Self::log(format_args!(
+			"\n\n{}\x1b[4Dv{}\n\n",
+			output.text,
+			env!("CARGO_PKG_VERSION")
+		));
+
+		Self::log(format_args!("Starting \x1b[36m{}\x1b[39m rounds\n", rounds));
+
+		for round in 0..rounds {
+			self.display_score();
+			// TODO: detect stop and record log in debug mode
+			self.round = round + 1;
+		}
+
+		println!(
+			"\n 🎉🎉🎉 The winner is: \x1b[1m{}\x1b[0m\n",
+			self
+				.score
+				.iter()
+				.max_by(|(_, a), (_, b)| a
+					.partial_cmp(b)
+					.unwrap_or(std::cmp::Ordering::Equal))
+				.unwrap()
+				.0
+		);
 	}
 
 	// *******************************| Actions |****************************** //
@@ -2001,7 +2058,8 @@ mod tests {
 
 	// TODO: resolve_challenge
 	// TODO: resolve_counter
-	// TODO: _looping
+	// TODO: display_score
+	// TODO: looping
 
 	// *******************************| Actions |****************************** //
 	#[test]
