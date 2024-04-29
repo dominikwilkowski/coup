@@ -929,7 +929,7 @@ impl Coup {
 				),
 				self.log,
 			);
-			self.card_loss(player.name.clone());
+			self.card_loss(challenger.name.clone());
 			false
 		} else {
 			Self::log(
@@ -939,7 +939,7 @@ impl Coup {
 				),
 				self.log,
 			);
-			self.card_loss(challenger.name.clone());
+			self.card_loss(player.name.clone());
 			true
 		}
 	}
@@ -1059,7 +1059,7 @@ impl Coup {
 		println!("\n\n{}\x1b[4Dv{}\n\n", output.text, env!("CARGO_PKG_VERSION"));
 
 		println!(
-			"Starting \x1b[36m{}\x1b[39m rounds",
+			" Starting \x1b[36m{}\x1b[39m rounds",
 			Self::format_number_with_separator(rounds)
 		);
 
@@ -2142,7 +2142,193 @@ mod tests {
 		);
 	}
 
-	// TODO: resolve_challenge
+	#[test]
+	fn test_resolve_challenge_successful() {
+		let mut coup = Coup::new(vec![Box::new(StaticBot), Box::new(StaticBot)]);
+		coup.setup();
+
+		// Assassination
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_challenge(
+			Action::Assassination(String::from("StaticBot 2")),
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, true);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador, Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeAssassin {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Swapping
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_challenge(
+			Action::Swapping,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, true);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador, Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeAmbassador {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Stealing
+		coup.bots[0].cards = vec![Card::Duke, Card::Assassin];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_challenge(
+			Action::Stealing(String::from("StaticBot 2")),
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, true);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador, Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeCaptain {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Tax
+		coup.bots[0].cards = vec![Card::Captain, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_challenge(
+			Action::Tax,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, true);
+		assert_eq!(coup.bots[0].cards, vec![Card::Captain]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador, Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeDuke {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+	}
+
+	#[test]
+	fn test_resolve_challenge_unsuccessful() {
+		let mut coup = Coup::new(vec![Box::new(StaticBot), Box::new(StaticBot)]);
+		coup.setup();
+
+		// Assassination
+		coup.bots[0].cards = vec![Card::Assassin, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_challenge(
+			Action::Assassination(String::from("StaticBot 2")),
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, false);
+		assert_eq!(coup.bots[0].cards, vec![Card::Assassin, Card::Captain]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeAssassin {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Swapping
+		coup.bots[0].cards = vec![Card::Assassin, Card::Ambassador];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_challenge(
+			Action::Swapping,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, false);
+		assert_eq!(coup.bots[0].cards, vec![Card::Assassin, Card::Ambassador]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeAmbassador {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Stealing
+		coup.bots[0].cards = vec![Card::Assassin, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_challenge(
+			Action::Stealing(String::from("StaticBot 2")),
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, false);
+		assert_eq!(coup.bots[0].cards, vec![Card::Assassin, Card::Captain]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeCaptain {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+
+		// Tax
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Ambassador];
+
+		let result = coup.resolve_challenge(
+			Action::Tax,
+			String::from("StaticBot"),
+			String::from("StaticBot 2"),
+		);
+
+		assert_eq!(result, false);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(
+			coup.history,
+			vec![History::ChallengeDuke {
+				by: String::from("StaticBot 2"),
+				target: String::from("StaticBot")
+			}]
+		);
+		coup.history = vec![];
+	}
+
 	// TODO: resolve_counter
 	// TODO: display_score
 
