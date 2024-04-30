@@ -267,15 +267,16 @@ impl Coup {
 					cards: bot.cards.len() as u8,
 				}
 			})
-			.filter(|bot| bot.name != self.bots[self.playing_bots[self.turn]].name)
+			.filter(|bot| bot.cards != 0)
 			.collect()
 	}
 
 	fn get_context(&self, name: String) -> Context {
 		Context {
+			name: name.clone(),
 			coins: self.get_bot_by_name(name.clone()).coins,
 			cards: self.get_bot_by_name(name.clone()).cards.clone(),
-			other_bots: self.get_other_bots(),
+			playing_bots: self.get_other_bots(),
 			discard_pile: self.discard_pile.clone(),
 			history: self.history.clone(),
 			score: self.score.clone(),
@@ -283,14 +284,19 @@ impl Coup {
 	}
 
 	fn card_loss(&mut self, name: String) {
+		if self.get_bot_by_name(name.clone()).cards.is_empty() {
+			// This bot is already dead
+			return;
+		}
 		let context = self.get_context(name.clone());
-		self.bots.iter_mut().for_each(|bot| {
+		self.bots.iter_mut().enumerate().for_each(|(index, bot)| {
 			let context = Context {
 				coins: bot.coins,
 				cards: bot.cards.clone(),
 				..context.clone()
 			};
-			if bot.name == name {
+			if !self.playing_bots.contains(&index) {
+			} else if bot.name == name {
 				let lost_card = bot.interface.on_card_loss(&context);
 				if !bot.cards.contains(&lost_card) {
 					Self::log(format_args!("🚨  {} is being penalized because \x1b[33mit discarded a card({:?}) it didn't have\x1b[39m", bot, lost_card), self.log);
@@ -372,7 +378,7 @@ impl Coup {
 	fn swap_card(&mut self, card: Card, swopee: String) {
 		Self::log(
 			format_args!(
-				"↬  {} is swapping its card for a new card from the deck",
+				"🔄  {} is swapping its card for a new card from the deck",
 				self.get_bot_by_name(swopee.clone())
 			),
 			self.log,
@@ -382,7 +388,8 @@ impl Coup {
 				if let Some(index) = bot.cards.iter().position(|&c| c == card) {
 					bot.cards.remove(index);
 				}
-				self.discard_pile.push(card);
+				self.deck.push(card);
+				self.deck.shuffle(&mut thread_rng());
 
 				let mut new_cards = bot.cards.clone();
 				new_cards.push(self.deck.pop().unwrap());
@@ -423,68 +430,8 @@ impl Coup {
 		);
 
 		// Let's play
-		self.game_loop();
-	}
-
-	fn game_loop(&mut self) {
 		while self.playing_bots.len() > 1 {
-			self.moves += 1;
-
-			let context =
-				self.get_context(self.bots[self.playing_bots[self.turn]].name.clone());
-
-			// If you have 10 or more coins you must coup
-			let action = if self.bots[self.playing_bots[self.turn]].coins >= 10 {
-				let target = self.bots[self.playing_bots[self.turn]]
-					.interface
-					.on_auto_coup(&context);
-				Action::Coup(target)
-			} else {
-				self.bots[self.playing_bots[self.turn]].interface.on_turn(&context)
-			};
-
-			match action {
-				Action::Assassination(target_name) => {
-					self.challenge_and_counter_round(
-						Action::Assassination(target_name.clone()),
-						target_name,
-					);
-				},
-				Action::Coup(ref target) => {
-					self.action_couping(target.clone());
-				},
-				Action::ForeignAid => {
-					self.counter_round_only();
-				},
-				Action::Swapping => {
-					self.challenge_round_only(Action::Swapping);
-				},
-				Action::Income => self.action_income(),
-				Action::Stealing(target_name) => {
-					self.challenge_and_counter_round(
-						Action::Stealing(target_name.clone()),
-						target_name,
-					);
-				},
-				Action::Tax => {
-					self.challenge_round_only(Action::Tax);
-				},
-			}
-
-			// Let's filter out all dead bots
-			self.playing_bots = self
-				.playing_bots
-				.iter()
-				.filter(|bot_index| !self.bots[**bot_index].cards.is_empty())
-				.copied()
-				.collect::<Vec<usize>>();
-
-			// We move to the next turn
-			self.turn = if self.turn >= self.playing_bots.len() - 1 {
-				0
-			} else {
-				self.turn + 1
-			};
+			self.game_loop();
 
 			if self.moves >= 1000 {
 				break;
@@ -508,6 +455,66 @@ impl Coup {
 			),
 			self.log,
 		);
+	}
+
+	fn game_loop(&mut self) {
+		self.moves += 1;
+
+		let context =
+			self.get_context(self.bots[self.playing_bots[self.turn]].name.clone());
+
+		// If you have 10 or more coins you must coup
+		let action = if self.bots[self.playing_bots[self.turn]].coins >= 10 {
+			let target = self.bots[self.playing_bots[self.turn]]
+				.interface
+				.on_auto_coup(&context);
+			Action::Coup(target)
+		} else {
+			self.bots[self.playing_bots[self.turn]].interface.on_turn(&context)
+		};
+
+		match action {
+			Action::Assassination(target_name) => {
+				self.challenge_and_counter_round(
+					Action::Assassination(target_name.clone()),
+					target_name,
+				);
+			},
+			Action::Coup(ref target_name) => {
+				self.action_couping(target_name.clone());
+			},
+			Action::ForeignAid => {
+				self.counter_round_only();
+			},
+			Action::Swapping => {
+				self.challenge_round_only(Action::Swapping);
+			},
+			Action::Income => self.action_income(),
+			Action::Stealing(target_name) => {
+				self.challenge_and_counter_round(
+					Action::Stealing(target_name.clone()),
+					target_name,
+				);
+			},
+			Action::Tax => {
+				self.challenge_round_only(Action::Tax);
+			},
+		}
+
+		// Let's filter out all dead bots
+		self.playing_bots = self
+			.playing_bots
+			.iter()
+			.filter(|bot_index| !self.bots[**bot_index].cards.is_empty())
+			.copied()
+			.collect::<Vec<usize>>();
+
+		// We move to the next turn
+		self.turn = if self.turn >= self.playing_bots.len() - 1 {
+			0
+		} else {
+			self.turn + 1
+		};
 	}
 
 	fn challenge_and_counter_round(
@@ -546,101 +553,63 @@ impl Coup {
 				};
 				self.swap_card(discard_card, playing_bot_name.clone());
 
-				// THE COUNTER CHALLENGE ROUND
-				// Does the target want to counter this action?
-				let counter =
-					self.get_bot_by_name(target_name.clone()).interface.on_counter(
-						&action,
-						playing_bot_name.clone(),
-						&self.get_context(target_name.clone()),
+				// At this point it's possible this bot is dead already and can't
+				// play any counters.
+				// Scenario:
+				// - Bot1(1 card) gets assassinated by Bot2
+				// - Bot1(1 card) challenges this assassination unsuccessfully
+				// - Bot1(0 card) is now dead and can't counter
+				if !self.get_bot_by_name(target_name.clone()).cards.is_empty() {
+					// THE COUNTER CHALLENGE ROUND
+					// Does the target want to counter this action?
+					let counter =
+						self.get_bot_by_name(target_name.clone()).interface.on_counter(
+							&action,
+							playing_bot_name.clone(),
+							&self.get_context(target_name.clone()),
+						);
+
+					match action {
+						Action::Assassination(_) => {
+							self.history.push(History::CounterAssassination {
+								by: target_name.clone(),
+								target: playing_bot_name.clone(),
+							})
+						},
+						Action::Stealing(_) => {
+							self.history.push(History::CounterStealing {
+								by: target_name.clone(),
+								target: playing_bot_name.clone(),
+							})
+						},
+						Action::Coup(_)
+						| Action::ForeignAid
+						| Action::Swapping
+						| Action::Income
+						| Action::Tax => {
+							unreachable!("Challenge and counter not called on other actions")
+						},
+					};
+					Self::log(
+						format_args!(
+							"🛑  {} was countered by {}",
+							self.get_bot_by_name(playing_bot_name.clone()),
+							self.get_bot_by_name(target_name.clone()),
+						),
+						self.log,
 					);
 
-				match action {
-					Action::Assassination(_) => {
-						self.history.push(History::CounterAssassination {
-							by: target_name.clone(),
-							target: playing_bot_name.clone(),
-						})
-					},
-					Action::Stealing(_) => self.history.push(History::CounterStealing {
-						by: target_name.clone(),
-						target: playing_bot_name.clone(),
-					}),
-					Action::Coup(_)
-					| Action::ForeignAid
-					| Action::Swapping
-					| Action::Income
-					| Action::Tax => {
-						unreachable!("Challenge and counter not called on other actions")
-					},
-				};
-				Self::log(
-					format_args!(
-						"🛑  {} was countered by {}",
-						self.get_bot_by_name(playing_bot_name.clone()),
-						self.get_bot_by_name(target_name.clone()),
-					),
-					self.log,
-				);
-
-				if counter.is_some() {
-					// The bot target_name is countering the action so we now ask the
-					// table if anyone would like to challenge this counter
-					if let Some(counter_challenge) = self.challenge_round(
-						ChallengeRound::Counter,
-						&action,
-						target_name.clone(),
-					) {
-						let counter_card = match action {
-							Action::Assassination(_) => Counter::Assassination,
-							Action::Stealing(_) => Counter::Stealing,
-							Action::Coup(_)
-							| Action::ForeignAid
-							| Action::Swapping
-							| Action::Income
-							| Action::Tax => unreachable!(
-								"Challenge and counter not called on other actions"
-							),
-						};
-						// The bot counter_challenge.by is challenging this action
-						let success = self.resolve_counter_challenge(
-							counter_card,
+					if counter.is_some() {
+						// The bot target_name is countering the action so we now ask the
+						// table if anyone would like to challenge this counter
+						if let Some(counter_challenge) = self.challenge_round(
+							ChallengeRound::Counter,
+							&action,
 							target_name.clone(),
-							counter_challenge.clone(),
-						);
-						let counter_card_name = match action {
-							Action::Assassination(_) => "Assassin",
-							Action::Stealing(_) => "Captain or the Ambassador",
-							Action::Coup(_)
-							| Action::ForeignAid
-							| Action::Swapping
-							| Action::Income
-							| Action::Tax => unreachable!(
-								"Challenge and counter not called on other actions"
-							),
-						};
-						if success {
-							// The challenge was successful so the player who played the
-							// counter get a penalty
-							self.penalize_bot(
-								target_name,
-								&format!(
-									"it didn't have the {} to block stealing",
-									counter_card_name
-								),
-							);
-						} else {
-							// The challenge was unsuccessful so the player who challenged the
-							// counter get a penalty and the action is performed
-							self.penalize_bot(
-								counter_challenge,
-								&format!("{} really did have the {} to block stealing so its challenge was unsuccessful", playing_bot_name, counter_card_name),
-							);
-							match action {
-								Action::Assassination(_) => {
-									self.action_assassination(target_name)
-								},
-								Action::Stealing(_) => self.action_stealing(target_name),
+						) {
+							let counter_card = match action {
+								Action::Assassination(_) => Counter::Assassination,
+								Action::Stealing(_) => Counter::Stealing,
 								Action::Coup(_)
 								| Action::ForeignAid
 								| Action::Swapping
@@ -648,6 +617,54 @@ impl Coup {
 								| Action::Tax => unreachable!(
 									"Challenge and counter not called on other actions"
 								),
+							};
+							// The bot counter_challenge.by is challenging this action
+							let success = self.resolve_counter_challenge(
+								counter_card,
+								target_name.clone(),
+								counter_challenge.clone(),
+							);
+							let counter_card_name = match action {
+								Action::Assassination(_) => "Assassin",
+								Action::Stealing(_) => "Captain or the Ambassador",
+								Action::Coup(_)
+								| Action::ForeignAid
+								| Action::Swapping
+								| Action::Income
+								| Action::Tax => unreachable!(
+									"Challenge and counter not called on other actions"
+								),
+							};
+							if success {
+								// The challenge was successful so the player who played the
+								// counter get a penalty
+								self.penalize_bot(
+									target_name,
+									&format!(
+										"it didn't have the {} to block stealing",
+										counter_card_name
+									),
+								);
+							} else {
+								// The challenge was unsuccessful so the player who challenged the
+								// counter get a penalty and the action is performed
+								self.penalize_bot(
+									counter_challenge,
+									&format!("{} really did have the {} to block stealing so its challenge was unsuccessful", playing_bot_name, counter_card_name),
+								);
+								match action {
+									Action::Assassination(_) => {
+										self.action_assassination(target_name)
+									},
+									Action::Stealing(_) => self.action_stealing(target_name),
+									Action::Coup(_)
+									| Action::ForeignAid
+									| Action::Swapping
+									| Action::Income
+									| Action::Tax => unreachable!(
+										"Challenge and counter not called on other actions"
+									),
+								}
 							}
 						}
 					}
@@ -749,8 +766,9 @@ impl Coup {
 		// On Action::ForeignAid
 		// Does anyone want to counter this action?
 		let mut counterer_name = String::new();
-		for bot in self.bots.iter() {
-			// skipping the challenger
+		for bot_index in self.playing_bots.iter() {
+			let bot = &self.bots[*bot_index];
+			// Skipping the challenger
 			if bot.name.clone() == playing_bot_name.clone() {
 				continue;
 			}
@@ -767,60 +785,65 @@ impl Coup {
 			}
 		}
 
-		let counter =
-			self.get_bot_by_name(counterer_name.clone()).interface.on_counter(
-				&Action::ForeignAid,
-				playing_bot_name.clone(),
-				&self.get_context(playing_bot_name.clone()),
+		if !counterer_name.is_empty() {
+			let counter =
+				self.get_bot_by_name(counterer_name.clone()).interface.on_counter(
+					&Action::ForeignAid,
+					playing_bot_name.clone(),
+					&self.get_context(playing_bot_name.clone()),
+				);
+
+			self.history.push(History::CounterForeignAid {
+				by: counterer_name.clone(),
+				target: playing_bot_name.clone(),
+			});
+			Self::log(
+				format_args!(
+					"🛑  {} was countered by {}",
+					self.get_bot_by_name(playing_bot_name.clone()),
+					self.get_bot_by_name(counterer_name.clone()),
+				),
+				self.log,
 			);
 
-		self.history.push(History::CounterForeignAid {
-			by: counterer_name.clone(),
-			target: playing_bot_name.clone(),
-		});
-		Self::log(
-			format_args!(
-				"🛑  {} was countered by {}",
-				self.get_bot_by_name(playing_bot_name.clone()),
-				self.get_bot_by_name(counterer_name.clone()),
-			),
-			self.log,
-		);
-
-		if counter.is_some() {
-			// The bot counterer_name is countering the action so we now ask the table
-			// if anyone would like to challenge this counter
-			if let Some(counter_challenge) = self.challenge_round(
-				ChallengeRound::Counter,
-				&Action::ForeignAid,
-				counterer_name.clone(),
-			) {
-				// The bot counter_challenge.by is challenging this action
-				let success = self.resolve_counter_challenge(
-					Counter::ForeignAid,
+			if counter.is_some() {
+				// The bot counterer_name is countering the action so we now ask the table
+				// if anyone would like to challenge this counter
+				if let Some(counter_challenge) = self.challenge_round(
+					ChallengeRound::Counter,
+					&Action::ForeignAid,
 					counterer_name.clone(),
-					counter_challenge.clone(),
-				);
-				let counter_card_name = "Duke";
-				if success {
-					// The challenge was successful so the player who played the counter
-					// get a penalty
-					self.penalize_bot(
-						counterer_name,
-						&format!(
-							"it didn't have the {} to block stealing",
-							counter_card_name
-						),
+				) {
+					// The bot counter_challenge.by is challenging this action
+					let success = self.resolve_counter_challenge(
+						Counter::ForeignAid,
+						counterer_name.clone(),
+						counter_challenge.clone(),
 					);
-				} else {
-					// The challenge was unsuccessful so the player who challenged the
-					// counter get a penalty and the action is performed
-					self.penalize_bot(
-						counter_challenge,
-						&format!("{} really did have the {} to block foreign aid so its challenge was unsuccessful", playing_bot_name, counter_card_name),
-					);
-					self.action_foraign_aid();
+					let counter_card_name = "Duke";
+					if success {
+						// The challenge was successful so the player who played the counter
+						// get a penalty
+						self.penalize_bot(
+							counterer_name,
+							&format!(
+								"it didn't have the {} to block stealing",
+								counter_card_name
+							),
+						);
+					} else {
+						// The challenge was unsuccessful so the player who challenged the
+						// counter get a penalty and the action is performed
+						self.penalize_bot(
+							counter_challenge,
+							&format!("{} really did have the {} to block foreign aid so its challenge was unsuccessful", playing_bot_name, counter_card_name),
+						);
+						self.action_foraign_aid();
+					}
 				}
+			} else {
+				// No counter was played so the action is performed
+				self.action_foraign_aid();
 			}
 		} else {
 			// No counter was played so the action is performed
@@ -835,7 +858,8 @@ impl Coup {
 		action: &Action,
 		by: String,
 	) -> Option<String> {
-		for bot in self.bots.iter() {
+		for bot_index in self.playing_bots.iter() {
+			let bot = &self.bots[*bot_index];
 			// skipping the challenger
 			if bot.name.clone() == by.clone() {
 				continue;
@@ -1098,8 +1122,8 @@ impl Coup {
 		self.display_score();
 		for round in 0..rounds {
 			self.setup();
-			self.game_loop();
-			// TODO: detect stop and record log in debug mode
+			self.play();
+			// TODO: detect "stop" and record log in debug mode
 			self.round = round + 1;
 			self.display_score();
 		}
@@ -1452,7 +1476,8 @@ mod tests {
 		coup.setup();
 
 		coup.playing_bots = vec![0, 1, 2, 3, 4];
-		assert!(!coup.get_other_bots().contains(&OtherBot {
+		coup.turn = 0;
+		assert!(coup.get_other_bots().contains(&OtherBot {
 			name: String::from("StaticBot"),
 			coins: 2,
 			cards: 2
@@ -1499,7 +1524,7 @@ mod tests {
 			coins: 2,
 			cards: 2
 		}));
-		assert!(!coup.get_other_bots().contains(&OtherBot {
+		assert!(coup.get_other_bots().contains(&OtherBot {
 			name: String::from("StaticBot 5"),
 			coins: 2,
 			cards: 2
@@ -1516,7 +1541,7 @@ mod tests {
 			coins: 2,
 			cards: 2
 		}));
-		assert!(!coup.get_other_bots().contains(&OtherBot {
+		assert!(coup.get_other_bots().contains(&OtherBot {
 			name: String::from("StaticBot 3"),
 			coins: 2,
 			cards: 2
@@ -1530,6 +1555,22 @@ mod tests {
 			name: String::from("StaticBot 5"),
 			coins: 2,
 			cards: 2
+		}));
+
+		coup.bots[0].cards = vec![];
+		coup.bots[1].cards = vec![Card::Duke];
+		coup.bots[3].cards = vec![];
+		coup.playing_bots = vec![1, 2, 4];
+		coup.turn = 2;
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("StaticBot 2"),
+			coins: 2,
+			cards: 1,
+		}));
+		assert!(coup.get_other_bots().contains(&OtherBot {
+			name: String::from("StaticBot 3"),
+			coins: 2,
+			cards: 2,
 		}));
 	}
 
@@ -1545,13 +1586,21 @@ mod tests {
 		assert_eq!(
 			coup.get_context(String::from("StaticBot")),
 			Context {
+				name: String::from("StaticBot"),
 				coins: 2,
 				cards: vec![Card::Ambassador, Card::Duke],
-				other_bots: vec![OtherBot {
-					name: String::from("StaticBot 2"),
-					coins: 2,
-					cards: 2
-				}],
+				playing_bots: vec![
+					OtherBot {
+						name: String::from("StaticBot"),
+						coins: 2,
+						cards: 2
+					},
+					OtherBot {
+						name: String::from("StaticBot 2"),
+						coins: 2,
+						cards: 2
+					}
+				],
 				discard_pile: vec![],
 				history: vec![],
 				score: vec![
@@ -1565,13 +1614,21 @@ mod tests {
 		assert_eq!(
 			coup.get_context(String::from("StaticBot 2")),
 			Context {
+				name: String::from("StaticBot 2"),
 				coins: 2,
 				cards: vec![Card::Captain, Card::Captain],
-				other_bots: vec![OtherBot {
-					name: String::from("StaticBot"),
-					coins: 2,
-					cards: 2
-				}],
+				playing_bots: vec![
+					OtherBot {
+						name: String::from("StaticBot"),
+						coins: 2,
+						cards: 2
+					},
+					OtherBot {
+						name: String::from("StaticBot 2"),
+						coins: 2,
+						cards: 2
+					}
+				],
 				discard_pile: vec![],
 				history: vec![],
 				score: vec![
@@ -1702,6 +1759,7 @@ mod tests {
 	fn test_swap_card() {
 		let mut coup = Coup::new(vec![Box::new(StaticBot), Box::new(StaticBot)]);
 		coup.setup();
+		coup.playing_bots = vec![0, 1];
 
 		coup.bots[0].cards = vec![Card::Ambassador, Card::Ambassador];
 		coup.bots[1].cards = vec![Card::Assassin, Card::Captain];
@@ -1714,10 +1772,10 @@ mod tests {
 
 		coup.swap_card(Card::Ambassador, String::from("StaticBot"));
 
-		assert_eq!(coup.bots[0].cards, vec![Card::Ambassador, Card::Captain]);
+		assert_eq!(coup.bots[0].cards.len(), 2);
 		assert_eq!(coup.bots[1].cards, vec![Card::Assassin, Card::Captain]);
-		assert_eq!(coup.deck, vec![Card::Ambassador]);
-		assert_eq!(coup.discard_pile, vec![Card::Ambassador]);
+		assert_eq!(coup.deck.len(), 2);
+		assert_eq!(coup.discard_pile, vec![]);
 	}
 
 	// TODO: test_play
@@ -1880,6 +1938,7 @@ mod tests {
 			}),
 		]);
 		coup.setup();
+		coup.playing_bots = vec![0, 1, 2, 3, 4];
 
 		coup.challenge_round(
 			ChallengeRound::Action,
@@ -2108,6 +2167,7 @@ mod tests {
 			}),
 		]);
 		coup.setup();
+		coup.playing_bots = vec![0, 1, 2, 3, 4];
 
 		coup.challenge_round(
 			ChallengeRound::Counter,

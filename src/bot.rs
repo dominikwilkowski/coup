@@ -24,12 +24,14 @@ pub struct OtherBot {
 /// coins but also what other bots are still in the game, the discard pile etc.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Context {
+	/// Your name in the game as identifier
+	pub name: String,
 	/// Your cards/influences you still have
 	pub cards: Vec<Card>,
 	/// Your coins
 	pub coins: u8,
 	/// A list of all other bots minus the yourself
-	pub other_bots: Vec<OtherBot>,
+	pub playing_bots: Vec<OtherBot>,
 	/// A list of all discarded [Card] so far in the game
 	pub discard_pile: Vec<Card>,
 	/// A list of each event that has happened in this game so far
@@ -54,7 +56,13 @@ pub trait BotInterface {
 	/// You can use this method internally as well when you decide to coup on
 	/// your own
 	fn on_auto_coup(&self, context: &Context) -> String {
-		context.other_bots[0].name.clone()
+		context
+			.playing_bots
+			.iter()
+			.find(|bot| bot.name != context.name)
+			.unwrap()
+			.name
+			.clone()
 	}
 
 	/// Called when another bot played an action and everyone gets to decide

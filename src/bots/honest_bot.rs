@@ -16,13 +16,16 @@ impl BotInterface for HonestBot {
 	}
 
 	fn on_turn(&self, context: &Context) -> Action {
+		let target = context
+			.playing_bots
+			.iter()
+			.filter(|bot| bot.name != context.name)
+			.min_by_key(|bot| bot.cards)
+			.unwrap();
+
 		if context.cards.contains(&Card::Assassin) && context.coins >= 3 {
-			let target =
-				context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
 			Action::Assassination(target.name.clone())
 		} else if context.cards.contains(&Card::Captain) {
-			let target =
-				context.other_bots.iter().max_by_key(|bot| bot.coins).unwrap();
 			Action::Stealing(target.name.clone())
 		} else if context.cards.contains(&Card::Duke) {
 			Action::Tax
@@ -32,7 +35,12 @@ impl BotInterface for HonestBot {
 	}
 
 	fn on_auto_coup(&self, context: &Context) -> String {
-		let target = context.other_bots.iter().min_by_key(|bot| bot.cards).unwrap();
+		let target = context
+			.playing_bots
+			.iter()
+			.filter(|bot| bot.name != context.name)
+			.min_by_key(|bot| bot.cards)
+			.unwrap();
 		target.name.clone()
 	}
 
