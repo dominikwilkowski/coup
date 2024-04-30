@@ -475,28 +475,106 @@ impl Coup {
 
 		match action {
 			Action::Assassination(target_name) => {
+				self.history.push(History::ActionAssassination {
+					by: context.name.clone(),
+					target: target_name.clone(),
+				});
+				Self::log(
+					format_args!(
+						"🃏  {} assassinates {} with the \x1b[33mAssassin\x1b[39m",
+						self.bots[self.playing_bots[self.turn]],
+						self.get_bot_by_name(target_name.clone())
+					),
+					self.log,
+				);
 				self.challenge_and_counter_round(
 					Action::Assassination(target_name.clone()),
 					target_name,
 				);
 			},
 			Action::Coup(ref target_name) => {
+				self.history.push(History::ActionCoup {
+					by: context.name.clone(),
+					target: target_name.clone(),
+				});
+				Self::log(
+					format_args!(
+						"🃏  {} \x1b[33mcoups\x1b[39m {}",
+						self.bots[self.playing_bots[self.turn]],
+						self.get_bot_by_name(target_name.clone())
+					),
+					self.log,
+				);
 				self.action_couping(target_name.clone());
 			},
 			Action::ForeignAid => {
+				self.history.push(History::ActionForeignAid {
+					by: context.name.clone(),
+				});
+				Self::log(
+					format_args!(
+						"🃏  {} takes \x1b[33mforeign aid\x1b[39m",
+						self.bots[self.playing_bots[self.turn]],
+					),
+					self.log,
+				);
 				self.counter_round_only();
 			},
 			Action::Swapping => {
+				self.history.push(History::ActionSwapping {
+					by: context.name.clone(),
+				});
+				Self::log(
+					format_args!(
+						"🃏  {} swaps cards with \x1b[33mthe Ambassador\x1b[39m",
+						self.bots[self.playing_bots[self.turn]]
+					),
+					self.log,
+				);
 				self.challenge_round_only(Action::Swapping);
 			},
-			Action::Income => self.action_income(),
+			Action::Income => {
+				self.history.push(History::ActionIncome {
+					by: context.name.clone(),
+				});
+				Self::log(
+					format_args!(
+						"🃏  {} takes \x1b[33ma coin\x1b[39m",
+						self.bots[self.playing_bots[self.turn]]
+					),
+					self.log,
+				);
+				self.action_income();
+			},
 			Action::Stealing(target_name) => {
+				self.history.push(History::ActionStealing {
+					by: context.name.clone(),
+					target: target_name.clone(),
+				});
+				Self::log(
+					format_args!(
+						"🃏  {} \x1b[33msteals 2 coins\x1b[39m from {}",
+						self.bots[self.playing_bots[self.turn]],
+						self.get_bot_by_name(target_name.clone()),
+					),
+					self.log,
+				);
 				self.challenge_and_counter_round(
 					Action::Stealing(target_name.clone()),
 					target_name,
 				);
 			},
 			Action::Tax => {
+				self.history.push(History::ActionTax {
+					by: context.name.clone(),
+				});
+				Self::log(
+					format_args!(
+						"🃏  {} takes tax with the \x1b[33mDuke\x1b[39m",
+						self.bots[self.playing_bots[self.turn]],
+					),
+					self.log,
+				);
 				self.challenge_round_only(Action::Tax);
 			},
 		}
@@ -1160,20 +1238,7 @@ impl Coup {
 			self.bots[self.playing_bots[self.turn]].coins = playing_bot_coins - 3;
 
 			// Taking a card from the target bot
-			let target_bot_name = self.get_bot_by_name(target.clone()).name.clone();
-			self.history.push(History::ActionAssassination {
-				by: playing_bot_name.clone(),
-				target: target_bot_name.clone(),
-			});
-			Self::log(
-				format_args!(
-					"🃏  {} assassinates {} with the \x1b[33mAssassin\x1b[39m",
-					self.bots[self.playing_bots[self.turn]],
-					self.get_bot_by_name(target)
-				),
-				self.log,
-			);
-			self.card_loss(target_bot_name);
+			self.card_loss(target);
 		}
 	}
 
@@ -1195,37 +1260,13 @@ impl Coup {
 			self.bots[self.playing_bots[self.turn]].coins = playing_bot_coins - 7;
 
 			// Taking a card from the target bot
-			let target_bot_name = self.get_bot_by_name(target.clone()).name.clone();
-			self.history.push(History::ActionCoup {
-				by: playing_bot_name.clone(),
-				target: target_bot_name.clone(),
-			});
-			Self::log(
-				format_args!(
-					"🃏  {} \x1b[33mcoups\x1b[39m {}",
-					self.bots[self.playing_bots[self.turn]],
-					self.get_bot_by_name(target)
-				),
-				self.log,
-			);
-			self.card_loss(target_bot_name);
+			self.card_loss(target);
 		}
 	}
 
 	fn action_foraign_aid(&mut self) {
 		let coins = self.bots[self.playing_bots[self.turn]].coins;
 		self.bots[self.playing_bots[self.turn]].coins = coins + 2;
-
-		self.history.push(History::ActionForeignAid {
-			by: self.bots[self.playing_bots[self.turn]].name.clone(),
-		});
-		Self::log(
-			format_args!(
-				"🃏  {} takes \x1b[33mforeign aid\x1b[39m",
-				self.bots[self.playing_bots[self.turn]],
-			),
-			self.log,
-		);
 	}
 
 	fn action_swapping(&mut self) {
@@ -1266,35 +1307,12 @@ impl Coup {
 				all_available_cards.remove(index);
 			}
 			self.bots[self.playing_bots[self.turn]].cards = all_available_cards;
-
-			self.history.push(History::ActionSwapping {
-				by: self.bots[self.playing_bots[self.turn]].name.clone(),
-			});
-			Self::log(
-				format_args!(
-					"🃏  {} swaps cards with \x1b[33mthe Ambassador\x1b[39m",
-					self.bots[self.playing_bots[self.turn]]
-				),
-				self.log,
-			);
 		}
 	}
 
 	fn action_income(&mut self) {
 		let playing_bot_coins = self.bots[self.playing_bots[self.turn]].coins;
-		// Adding the coin to the bot
 		self.bots[self.playing_bots[self.turn]].coins = playing_bot_coins + 1;
-
-		self.history.push(History::ActionIncome {
-			by: self.bots[self.playing_bots[self.turn]].name.clone(),
-		});
-		Self::log(
-			format_args!(
-				"🃏  {} takes \x1b[33ma coin\x1b[39m",
-				self.bots[self.playing_bots[self.turn]]
-			),
-			self.log,
-		);
 	}
 
 	fn action_stealing(&mut self, target: String) {
@@ -1308,35 +1326,11 @@ impl Coup {
 			.find(|bot| bot.name.clone() == target)
 			.unwrap()
 			.coins = target_coins - booty;
-
-		self.history.push(History::ActionStealing {
-			by: self.bots[self.playing_bots[self.turn]].name.clone(),
-			target: self.get_bot_by_name(target.clone()).name.clone(),
-		});
-		Self::log(
-			format_args!(
-				"🃏  {} \x1b[33msteals 2 coins\x1b[39m from {}",
-				self.bots[self.playing_bots[self.turn]],
-				self.get_bot_by_name(target),
-			),
-			self.log,
-		);
 	}
 
 	fn action_tax(&mut self) {
 		let coins = self.bots[self.playing_bots[self.turn]].coins;
 		self.bots[self.playing_bots[self.turn]].coins = coins + 3;
-
-		self.history.push(History::ActionTax {
-			by: self.bots[self.playing_bots[self.turn]].name.clone(),
-		});
-		Self::log(
-			format_args!(
-				"🃏  {} takes tax with the \x1b[33mDuke\x1b[39m",
-				self.bots[self.playing_bots[self.turn]],
-			),
-			self.log,
-		);
 	}
 }
 
@@ -2629,13 +2623,6 @@ mod tests {
 		assert_eq!(coup.bots[0].coins, 1);
 		assert_eq!(coup.deck, vec![Card::Ambassador, Card::Captain]);
 		assert_eq!(coup.discard_pile, vec![Card::Captain]);
-		assert_eq!(
-			coup.history.pop().unwrap(),
-			History::ActionAssassination {
-				by: String::from("StaticBot"),
-				target: String::from("StaticBot 2")
-			}
-		);
 	}
 
 	#[test]
@@ -2696,13 +2683,6 @@ mod tests {
 		assert_eq!(coup.bots[0].coins, 1);
 		assert_eq!(coup.deck, vec![Card::Ambassador, Card::Captain]);
 		assert_eq!(coup.discard_pile, vec![Card::Captain]);
-		assert_eq!(
-			coup.history.pop().unwrap(),
-			History::ActionCoup {
-				by: String::from("StaticBot"),
-				target: String::from("StaticBot 2")
-			}
-		);
 	}
 
 	#[test]
