@@ -38,12 +38,36 @@ impl BotInterface for HonestBot {
 
 	fn on_challenge_action_round(
 		&self,
-		_action: &Action,
+		action: &Action,
 		_by: String,
-		_context: &Context,
+		context: &Context,
 	) -> bool {
-		// TODO
-		false
+		let mut all_visible_cards = context.cards.clone();
+		all_visible_cards.extend(context.discard_pile.clone());
+
+		match action {
+			Action::Assassination(_) => {
+				all_visible_cards.iter().filter(|card| **card == Card::Assassin).count()
+					== 3
+			},
+			Action::Swapping => {
+				all_visible_cards
+					.iter()
+					.filter(|card| **card == Card::Ambassador)
+					.count() == 3
+			},
+			Action::Stealing(_) => {
+				all_visible_cards.iter().filter(|card| **card == Card::Captain).count()
+					== 3
+			},
+			Action::Tax => {
+				all_visible_cards.iter().filter(|card| **card == Card::Duke).count()
+					== 3
+			},
+			Action::Coup(_) | Action::ForeignAid | Action::Income => {
+				unreachable!("Can't challenge couping or Income")
+			},
+		}
 	}
 
 	fn on_counter(
