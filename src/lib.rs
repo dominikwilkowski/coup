@@ -222,7 +222,7 @@ impl Coup {
 
 		// Put the index of all bots into play so we can shuffle them later
 		self.playing_bots.clear();
-		for index in 0..std::cmp::min(self.bots.len(), 6) {
+		for index in 0..self.bots.len() {
 			self.playing_bots.push(index);
 		}
 
@@ -486,7 +486,7 @@ impl Coup {
 				self.turn + 1
 			};
 
-			if self.turn >= 1000 {
+			if self.moves >= 1000 {
 				break;
 			}
 		}
@@ -1404,10 +1404,18 @@ mod tests {
 		]);
 		coup.setup();
 
-		assert_eq!(coup.bots[0].cards.len(), 2);
-		assert_eq!(coup.bots[0].coins, 2);
-		assert_eq!(coup.bots[1].cards.len(), 2);
-		assert_eq!(coup.bots[1].coins, 2);
+		assert_eq!(coup.bots[coup.playing_bots[0]].cards.len(), 2);
+		assert_eq!(coup.bots[coup.playing_bots[0]].coins, 2);
+		assert_eq!(coup.bots[coup.playing_bots[1]].cards.len(), 2);
+		assert_eq!(coup.bots[coup.playing_bots[1]].coins, 2);
+		assert_eq!(coup.bots[coup.playing_bots[2]].cards.len(), 2);
+		assert_eq!(coup.bots[coup.playing_bots[2]].coins, 2);
+		assert_eq!(coup.bots[coup.playing_bots[3]].cards.len(), 2);
+		assert_eq!(coup.bots[coup.playing_bots[3]].coins, 2);
+		assert_eq!(coup.bots[coup.playing_bots[4]].cards.len(), 2);
+		assert_eq!(coup.bots[coup.playing_bots[4]].coins, 2);
+		assert_eq!(coup.bots[coup.playing_bots[5]].cards.len(), 2);
+		assert_eq!(coup.bots[coup.playing_bots[5]].coins, 2);
 		assert_eq!(coup.playing_bots.len(), 6);
 		assert_eq!(coup.deck.len(), 3);
 		assert_eq!(coup.discard_pile, vec![]);
