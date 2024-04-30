@@ -72,35 +72,85 @@ impl BotInterface for HonestBot {
 
 	fn on_counter(
 		&self,
-		_action: &Action,
+		action: &Action,
 		_by: String,
-		_context: &Context,
+		context: &Context,
 	) -> Option<bool> {
-		// TODO
-		None
+		match action {
+			Action::Assassination(_) => {
+				if context.cards.contains(&Card::Contessa) {
+					Some(true)
+				} else {
+					None
+				}
+			},
+			Action::ForeignAid => {
+				if context.cards.contains(&Card::Duke) {
+					Some(true)
+				} else {
+					None
+				}
+			},
+			Action::Stealing(_) => {
+				if context.cards.contains(&Card::Captain)
+					|| context.cards.contains(&Card::Ambassador)
+				{
+					Some(true)
+				} else {
+					None
+				}
+			},
+			Action::Coup(_) | Action::Swapping | Action::Income | Action::Tax => {
+				unreachable!("Can't challenge couping or Income")
+			},
+		}
 	}
 
 	fn on_challenge_counter_round(
 		&self,
-		_action: &Action,
+		action: &Action,
 		_by: String,
-		_context: &Context,
+		context: &Context,
 	) -> bool {
-		// TODO
-		false
+		let mut all_visible_cards = context.cards.clone();
+		all_visible_cards.extend(context.discard_pile.clone());
+
+		match action {
+			Action::Assassination(_) => {
+				all_visible_cards.iter().filter(|card| **card == Card::Contessa).count()
+					== 3
+			},
+			Action::ForeignAid => context.cards.contains(&Card::Duke),
+			Action::Stealing(_) => {
+				all_visible_cards.iter().filter(|card| **card == Card::Captain).count()
+					== 3 && all_visible_cards
+					.iter()
+					.filter(|card| **card == Card::Ambassador)
+					.count() == 3
+			},
+			Action::Coup(_) | Action::Income | Action::Swapping | Action::Tax => {
+				unreachable!("Can't challenge couping or Income")
+			},
+		}
 	}
 
 	fn on_swapping_cards(
 		&self,
 		new_cards: [Card; 2],
-		_context: &Context,
+		context: &Context,
 	) -> [Card; 2] {
-		// TODO
-		new_cards
+		let mut discard_cards = Vec::new();
+		if context.cards[0] == context.cards[1] {
+			discard_cards.push(context.cards[0])
+		} else {
+			discard_cards.push(new_cards[0]);
+		}
+		discard_cards.push(new_cards[1]);
+
+		[discard_cards[0], discard_cards[1]]
 	}
 
 	fn on_card_loss(&self, context: &Context) -> Card {
-		// TODO
 		context.cards.clone().pop().unwrap()
 	}
 }
