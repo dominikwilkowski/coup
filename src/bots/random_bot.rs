@@ -66,8 +66,8 @@ impl BotInterface for RandomBot {
 		_action: &Action,
 		_by: String,
 		_context: &Context,
-	) -> Option<bool> {
-		let mut counter = [Some(true), None];
+	) -> bool {
+		let mut counter = [true, false];
 		counter.shuffle(&mut thread_rng());
 		counter[0]
 	}

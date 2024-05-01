@@ -699,7 +699,7 @@ impl Coup {
 					&self.get_context(target_name.clone()),
 				);
 
-			if counter.is_some() {
+			if counter {
 				// The bot target_name is countering the action so we now ask the
 				// table if anyone would like to challenge this counter
 				match action {
@@ -872,7 +872,7 @@ impl Coup {
 				&self.get_context(playing_bot_name.clone()),
 			);
 
-			if countering.is_some() {
+			if countering {
 				counterer_name = bot.name.clone();
 				break;
 			}
@@ -1758,8 +1758,8 @@ mod tests {
 				_action: &Action,
 				_by: String,
 				_context: &Context,
-			) -> Option<bool> {
-				Some(true)
+			) -> bool {
+				true
 			}
 		}
 
@@ -2032,8 +2032,8 @@ mod tests {
 				_action: &Action,
 				_by: String,
 				_context: &Context,
-			) -> Option<bool> {
-				Some(true)
+			) -> bool {
+				true
 			}
 		}
 
@@ -2427,8 +2427,8 @@ mod tests {
 				_action: &Action,
 				_by: String,
 				_context: &Context,
-			) -> Option<bool> {
-				Some(true)
+			) -> bool {
+				true
 			}
 		}
 		struct ChallengeBot;
@@ -2480,8 +2480,8 @@ mod tests {
 				_action: &Action,
 				_by: String,
 				_context: &Context,
-			) -> Option<bool> {
-				Some(true)
+			) -> bool {
+				true
 			}
 		}
 		struct ChallengeBot;

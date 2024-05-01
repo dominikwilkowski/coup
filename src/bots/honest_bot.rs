@@ -83,30 +83,13 @@ impl BotInterface for HonestBot {
 		action: &Action,
 		_by: String,
 		context: &Context,
-	) -> Option<bool> {
+	) -> bool {
 		match action {
-			Action::Assassination(_) => {
-				if context.cards.contains(&Card::Contessa) {
-					Some(true)
-				} else {
-					None
-				}
-			},
-			Action::ForeignAid => {
-				if context.cards.contains(&Card::Duke) {
-					Some(true)
-				} else {
-					None
-				}
-			},
+			Action::Assassination(_) => context.cards.contains(&Card::Contessa),
+			Action::ForeignAid => context.cards.contains(&Card::Duke),
 			Action::Stealing(_) => {
-				if context.cards.contains(&Card::Captain)
+				context.cards.contains(&Card::Captain)
 					|| context.cards.contains(&Card::Ambassador)
-				{
-					Some(true)
-				} else {
-					None
-				}
 			},
 			Action::Coup(_) | Action::Swapping | Action::Income | Action::Tax => {
 				unreachable!("Can't challenge couping or Income")

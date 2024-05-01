@@ -105,8 +105,8 @@ pub trait BotInterface {
 		_action: &Action,
 		_by: String,
 		_context: &Context,
-	) -> Option<bool> {
-		None
+	) -> bool {
+		false
 	}
 
 	/// Called when a bot played a counter. Now everyone gets to decided whether
