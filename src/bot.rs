@@ -1,5 +1,18 @@
 //! The bot trait [BotInterface] and a couple types that help with the bot
-//! implementation
+//! implementation.
+//!
+//! ```rust
+//! use coup::bot::BotInterface;
+//!
+//! pub struct MyBot;
+//!
+//! // The minimal implementation of a bot with the StaticBot default trait methods:
+//! impl BotInterface for MyBot {
+//!     fn get_name(&self) -> String {
+//!         String::from("Kate")
+//!     }
+//! }
+//! ```
 
 use crate::{Action, Card, History, Score};
 

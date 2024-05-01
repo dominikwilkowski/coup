@@ -1,3 +1,28 @@
+//! # Coup
+//! This is an engine for the popular card game [coup](http://gamegrumps.wikia.com/wiki/Coup).
+//!
+//! ```rust
+//! use coup::{
+//!     bots::{HonestBot, RandomBot, StaticBot},
+//!     Coup,
+//! };
+//!
+//! let mut coup_game = Coup::new(vec![
+//!     Box::new(StaticBot),
+//!     Box::new(HonestBot),
+//!     Box::new(RandomBot),
+//!     Box::new(StaticBot),
+//!     Box::new(RandomBot),
+//!     Box::new(HonestBot),
+//! ]);
+//!
+//! // You can play a single game
+//! coup_game.play();
+//!
+//! // Or you can play 5 games (or more)
+//! coup_game.looping(5);
+//! ```
+
 extern crate cfonts;
 
 use cfonts::{render, Colors, Options};
