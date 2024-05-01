@@ -752,9 +752,9 @@ impl Coup {
 						target_name.clone(),
 						counter_challenge.clone(),
 					);
-					if !success {
-						// The challenge was unsuccessful so the player who challenged the
-						// counter get a penalty and the action is performed
+					if success {
+						// The challenge was successful so the player who countered gets a
+						// penalty but the action is still performed
 						match action {
 							Action::Assassination(_) => {
 								self.action_assassination(target_name.clone())
@@ -1776,16 +1776,17 @@ mod tests {
 		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
 		coup.bots[0].coins = 4;
 		coup.bots[3].cards = vec![Card::Ambassador, Card::Assassin];
-		coup.playing_bots = vec![0, 1, 2, 3, 4];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
 		coup.turn = 0;
 		coup.history = vec![];
 
 		coup.challenge_and_counter_round(
-			Action::Assassination(String::from("CounterBot 2")),
-			String::from("CounterBot 2"),
+			Action::Assassination(String::from("StaticBot 2")),
+			String::from("StaticBot 2"),
 		);
 
 		assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[0].coins, 4);
 		assert_eq!(coup.bots[1].cards.len(), 2);
 		assert_eq!(coup.bots[2].cards.len(), 2);
 		assert_eq!(coup.bots[3].cards.len(), 2);
@@ -1812,7 +1813,7 @@ mod tests {
 		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
 		coup.bots[0].coins = 4;
 		coup.bots[3].cards = vec![Card::Ambassador, Card::Assassin];
-		coup.playing_bots = vec![0, 1, 2, 3, 4];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
 		coup.turn = 0;
 		coup.history = vec![];
 
@@ -1822,6 +1823,7 @@ mod tests {
 		);
 
 		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 4);
 		assert_eq!(coup.bots[1].cards.len(), 2);
 		assert_eq!(coup.bots[2].cards.len(), 2);
 		assert_eq!(coup.bots[3].cards, vec![Card::Ambassador, Card::Assassin]);
@@ -1836,75 +1838,81 @@ mod tests {
 		);
 
 		// Successful counter challenge
-		// coup = Coup::new(vec![
-		// 	Box::new(StaticBot),
-		// 	Box::new(ActionChallengeBot),
-		// 	Box::new(StaticBot),
-		// 	Box::new(CounterBot),
-		// 	Box::new(StaticBot),
-		// 	Box::new(ChallengeCounterBot),
-		// ]);
-		// coup.setup();
-		// coup.bots[0].cards = vec![Card::Duke, Card::Captain];
-		// coup.bots[0].coins = 4;
-		// coup.bots[3].cards = vec![Card::Ambassador, Card::Assassin];
-		// coup.playing_bots = vec![0, 1, 2, 3, 4];
-		// coup.turn = 0;
-		// coup.history = vec![];
+		coup = Coup::new(vec![
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(CounterBot),
+			Box::new(StaticBot),
+			Box::new(ChallengeCounterBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 4;
+		coup.bots[3].cards = vec![Card::Captain, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
 
-		// coup.challenge_and_counter_round(
-		// 	Action::Assassination(String::from("CounterBot")),
-		// 	String::from("CounterBot"),
-		// );
+		coup.challenge_and_counter_round(
+			Action::Assassination(String::from("CounterBot")),
+			String::from("CounterBot"),
+		);
 
-		// assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
-		// assert_eq!(coup.bots[1].cards.len(), 2);
-		// assert_eq!(coup.bots[2].cards.len(), 2);
-		// assert_eq!(coup.bots[3].cards.len(), 2);
-		// assert_eq!(coup.bots[4].cards.len(), 2);
-		// assert_eq!(coup.bots[5].cards.len(), 2);
-		// assert_eq!(coup.history, vec![History::ChallengeAssassin {
-		// 	by: String::from("ActionChallengeBot"),
-		// 	target: String::from("StaticBot"),
-		// }]);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 1);
+		assert_eq!(coup.bots[1].cards.len(), 2);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 0);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![
+				History::CounterAssassination {
+					by: String::from("CounterBot"),
+					target: String::from("StaticBot"),
+				},
+				History::CounterChallengeContessa {
+					by: String::from("ChallengeCounterBot"),
+					target: String::from("CounterBot"),
+				}
+			]
+		);
 
 		// Successful action
-		// coup = Coup::new(vec![
-		// 	Box::new(StaticBot),
-		// 	Box::new(ActionChallengeBot),
-		// 	Box::new(StaticBot),
-		// 	Box::new(CounterBot),
-		// 	Box::new(StaticBot),
-		// 	Box::new(ChallengeCounterBot),
-		// ]);
-		// coup.setup();
-		// coup.bots[0].cards = vec![Card::Duke, Card::Captain];
-		// coup.bots[0].coins = 4;
-		// coup.bots[3].cards = vec![Card::Ambassador, Card::Assassin];
-		// coup.playing_bots = vec![0, 1, 2, 3, 4];
-		// coup.turn = 0;
-		// coup.history = vec![];
+		coup = Coup::new(vec![
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 4;
+		coup.bots[3].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
 
-		// coup.challenge_and_counter_round(
-		// 	Action::Assassination(String::from("CounterBot")),
-		// 	String::from("CounterBot"),
-		// );
+		coup.challenge_and_counter_round(
+			Action::Assassination(String::from("StaticBot 4")),
+			String::from("StaticBot 4"),
+		);
 
-		// assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
-		// assert_eq!(coup.bots[1].cards.len(), 2);
-		// assert_eq!(coup.bots[2].cards.len(), 2);
-		// assert_eq!(coup.bots[3].cards.len(), 2);
-		// assert_eq!(coup.bots[4].cards.len(), 2);
-		// assert_eq!(coup.bots[5].cards.len(), 2);
-		// assert_eq!(coup.history, vec![History::ChallengeAssassin {
-		// 	by: String::from("ActionChallengeBot"),
-		// 	target: String::from("StaticBot"),
-		// }]);
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 1);
+		assert_eq!(coup.bots[1].cards.len(), 2);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards, vec![Card::Ambassador]);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
 
 		// Unsuccessful challenge
 		// Unsuccessful counter
 		// Unsuccessful counter challenge
-		// Unsuccessful action
 	}
 
 	#[test]
