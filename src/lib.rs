@@ -1000,49 +1000,6 @@ impl Coup {
 			};
 
 			if challenging {
-				self.history.push(match challenge_type {
-					ChallengeRound::Action => match action {
-						Action::Assassination(_) => History::ChallengeAssassin {
-							by: bot.name.clone(),
-							target: by.clone(),
-						},
-						Action::Swapping => History::ChallengeAmbassador {
-							by: bot.name.clone(),
-							target: by.clone(),
-						},
-						Action::Stealing(_) => History::ChallengeCaptain {
-							by: bot.name.clone(),
-							target: by.clone(),
-						},
-						Action::Tax => History::ChallengeDuke {
-							by: bot.name.clone(),
-							target: by.clone(),
-						},
-						Action::Coup(_) | Action::ForeignAid | Action::Income => {
-							unreachable!("Can't challenge Coup, ForeignAid or Income")
-						},
-					},
-					ChallengeRound::Counter => match action {
-						Action::Assassination(_) => History::CounterAssassination {
-							by: bot.name.clone(),
-							target: by.clone(),
-						},
-						Action::ForeignAid => History::CounterForeignAid {
-							by: bot.name.clone(),
-							target: by.clone(),
-						},
-						Action::Stealing(_) => History::CounterStealing {
-							by: bot.name.clone(),
-							target: by.clone(),
-						},
-						Action::Coup(_)
-						| Action::Swapping
-						| Action::Income
-						| Action::Tax => {
-							unreachable!("Can't counter Coup, Swapping, Income or Tax")
-						},
-					},
-				});
 				Self::log(
 					format_args!(
 						"❓  {} was challenged by {}",
@@ -1820,12 +1777,110 @@ mod tests {
 	// TODO: test_play
 	// TODO: test_game_loop
 	// TODO: test_challenge_and_counter_round
-	// TODO: test_challenge_round_only
+
+	#[test]
+	fn test_challenge_round_only_successful() {
+		// Swapping
+		struct TestBot;
+		impl BotInterface for TestBot {
+			fn get_name(&self) -> String {
+				String::from("TestBot")
+			}
+			fn on_challenge_action_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				true
+			}
+		}
+
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(TestBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[2].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4];
+		coup.turn = 0;
+
+		coup.challenge_round_only(Action::Swapping);
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[2].cards, vec![Card::Ambassador, Card::Assassin]);
+
+		// Action::Tax
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Ambassador, Card::Captain];
+		coup.bots[2].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4];
+		coup.turn = 0;
+
+		coup.challenge_round_only(Action::Tax);
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Ambassador]);
+		assert_eq!(coup.bots[2].cards, vec![Card::Ambassador, Card::Assassin]);
+	}
+
+	#[test]
+	fn test_challenge_round_only_unsuccessful() {
+		// Swapping
+		struct TestBot;
+		impl BotInterface for TestBot {
+			fn get_name(&self) -> String {
+				String::from("TestBot")
+			}
+			fn on_challenge_action_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				true
+			}
+		}
+
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(TestBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Ambassador, Card::Captain];
+		coup.bots[2].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4];
+		coup.turn = 0;
+
+		coup.challenge_round_only(Action::Swapping);
+
+		assert_eq!(coup.bots[0].cards.len(), 2);
+		assert_eq!(coup.bots[2].cards, vec![Card::Ambassador]);
+
+		// Action::Tax
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[2].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4];
+		coup.turn = 0;
+
+		coup.challenge_round_only(Action::Tax);
+
+		assert_eq!(coup.bots[0].cards.len(), 2);
+		assert_eq!(coup.bots[2].cards, vec![Card::Ambassador]);
+	}
+
 	// TODO: test_counter_round_only
 
 	#[test]
 	fn test_challenge_round_action_no_challenge() {
-		pub struct TestBot {
+		struct TestBot {
 			pub calls: std::cell::RefCell<Vec<String>>,
 		}
 		impl BotInterface for TestBot {
@@ -1924,7 +1979,7 @@ mod tests {
 
 	#[test]
 	fn test_challenge_round_action() {
-		pub struct TestBot {
+		struct TestBot {
 			pub calls: std::cell::RefCell<Vec<String>>,
 		}
 		impl BotInterface for TestBot {
@@ -1996,13 +2051,6 @@ mod tests {
 		);
 		assert_eq!(coup.bots[3].interface.get_name(), String::from("TestBot"));
 		assert_eq!(coup.bots[4].interface.get_name(), String::from("TestBot"));
-		assert_eq!(
-			coup.history,
-			vec![History::ChallengeAmbassador {
-				by: String::from("ChallengeBot"),
-				target: String::from("TestBot")
-			}]
-		);
 
 		coup.challenge_round(
 			ChallengeRound::Action,
@@ -2028,24 +2076,11 @@ mod tests {
 		);
 		assert_eq!(coup.bots[3].interface.get_name(), String::from("TestBot"));
 		assert_eq!(coup.bots[4].interface.get_name(), String::from("TestBot"));
-		assert_eq!(
-			coup.history,
-			vec![
-				History::ChallengeAmbassador {
-					by: String::from("ChallengeBot"),
-					target: String::from("TestBot")
-				},
-				History::ChallengeAmbassador {
-					by: String::from("ChallengeBot"),
-					target: String::from("TestBot 4")
-				}
-			]
-		);
 	}
 
 	#[test]
 	fn test_challenge_round_counter_no_challenge() {
-		pub struct TestBot {
+		struct TestBot {
 			pub calls: std::cell::RefCell<Vec<String>>,
 		}
 		impl BotInterface for TestBot {
@@ -2147,7 +2182,7 @@ mod tests {
 
 	#[test]
 	fn test_challenge_round_counter() {
-		pub struct TestBot {
+		struct TestBot {
 			pub calls: std::cell::RefCell<Vec<String>>,
 		}
 		impl BotInterface for TestBot {
@@ -2228,13 +2263,6 @@ mod tests {
 			String::from("ChallengeBoton_challenge_counter_round")
 		);
 		assert_eq!(coup.bots[4].interface.get_name(), String::from("TestBot"));
-		assert_eq!(
-			coup.history,
-			vec![History::CounterForeignAid {
-				by: String::from("ChallengeBot"),
-				target: String::from("TestBot 2")
-			}]
-		);
 
 		coup.challenge_round(
 			ChallengeRound::Counter,
@@ -2265,19 +2293,6 @@ mod tests {
 			)
 		);
 		assert_eq!(coup.bots[4].interface.get_name(), String::from("TestBot"));
-		assert_eq!(
-			coup.history,
-			vec![
-				History::CounterForeignAid {
-					by: String::from("ChallengeBot"),
-					target: String::from("TestBot 2")
-				},
-				History::CounterForeignAid {
-					by: String::from("ChallengeBot"),
-					target: String::from("TestBot 4")
-				}
-			]
-		);
 	}
 
 	#[test]

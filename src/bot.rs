@@ -43,7 +43,7 @@ pub struct Context {
 	pub cards: Vec<Card>,
 	/// Your coins
 	pub coins: u8,
-	/// A list of all other bots minus the yourself
+	/// A list of all playing bots this round
 	pub playing_bots: Vec<OtherBot>,
 	/// A list of all discarded [Card] so far in the game
 	pub discard_pile: Vec<Card>,
