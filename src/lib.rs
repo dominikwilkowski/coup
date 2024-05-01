@@ -250,7 +250,6 @@ impl Coup {
 		}
 	}
 
-	#[allow(clippy::borrowed_box)]
 	fn get_bot_by_name(&self, name: String) -> &Bot {
 		self.bots.iter().find(|bot| bot.name == name).unwrap()
 	}
@@ -348,7 +347,7 @@ impl Coup {
 	}
 
 	fn target_not_found(&self, target: String) -> bool {
-		self.bots.iter().filter(|bot| bot.name == target).count() == 0
+		self.bots.iter().filter(|bot| bot.name == target).count() != 1
 	}
 
 	fn set_score(&mut self, winners: Vec<String>) {
@@ -475,37 +474,51 @@ impl Coup {
 
 		match action {
 			Action::Assassination(target_name) => {
-				self.history.push(History::ActionAssassination {
-					by: context.name.clone(),
-					target: target_name.clone(),
-				});
-				Self::log(
-					format_args!(
-						"🃏  {} assassinates {} with the \x1b[33mAssassin\x1b[39m",
-						self.bots[self.playing_bots[self.turn]],
-						self.get_bot_by_name(target_name.clone())
-					),
-					self.log,
-				);
-				self.challenge_and_counter_round(
-					Action::Assassination(target_name.clone()),
-					target_name,
-				);
+				if self.target_not_found(target_name.clone()) {
+					self.penalize_bot(
+						context.name.clone(),
+						"it tried to assassinate an unknown bot",
+					);
+				} else {
+					self.history.push(History::ActionAssassination {
+						by: context.name.clone(),
+						target: target_name.clone(),
+					});
+					Self::log(
+						format_args!(
+							"🃏  {} assassinates {} with the \x1b[33mAssassin\x1b[39m",
+							self.bots[self.playing_bots[self.turn]],
+							self.get_bot_by_name(target_name.clone())
+						),
+						self.log,
+					);
+					self.challenge_and_counter_round(
+						Action::Assassination(target_name.clone()),
+						target_name,
+					);
+				}
 			},
-			Action::Coup(ref target_name) => {
-				self.history.push(History::ActionCoup {
-					by: context.name.clone(),
-					target: target_name.clone(),
-				});
-				Self::log(
-					format_args!(
-						"🃏  {} \x1b[33mcoups\x1b[39m {}",
-						self.bots[self.playing_bots[self.turn]],
-						self.get_bot_by_name(target_name.clone())
-					),
-					self.log,
-				);
-				self.action_couping(target_name.clone());
+			Action::Coup(target_name) => {
+				if self.target_not_found(target_name.clone()) {
+					self.penalize_bot(
+						context.name.clone(),
+						"it tried to coup an unknown bot",
+					);
+				} else {
+					self.history.push(History::ActionCoup {
+						by: context.name.clone(),
+						target: target_name.clone(),
+					});
+					Self::log(
+						format_args!(
+							"🃏  {} \x1b[33mcoups\x1b[39m {}",
+							self.bots[self.playing_bots[self.turn]],
+							self.get_bot_by_name(target_name.clone())
+						),
+						self.log,
+					);
+					self.action_couping(target_name.clone());
+				}
 			},
 			Action::ForeignAid => {
 				self.history.push(History::ActionForeignAid {
@@ -547,22 +560,29 @@ impl Coup {
 				self.action_income();
 			},
 			Action::Stealing(target_name) => {
-				self.history.push(History::ActionStealing {
-					by: context.name.clone(),
-					target: target_name.clone(),
-				});
-				Self::log(
-					format_args!(
-						"🃏  {} \x1b[33msteals 2 coins\x1b[39m from {}",
-						self.bots[self.playing_bots[self.turn]],
-						self.get_bot_by_name(target_name.clone()),
-					),
-					self.log,
-				);
-				self.challenge_and_counter_round(
-					Action::Stealing(target_name.clone()),
-					target_name,
-				);
+				if self.target_not_found(target_name.clone()) {
+					self.penalize_bot(
+						context.name.clone(),
+						"it tried to steal from an unknown bot",
+					);
+				} else {
+					self.history.push(History::ActionStealing {
+						by: context.name.clone(),
+						target: target_name.clone(),
+					});
+					Self::log(
+						format_args!(
+							"🃏  {} \x1b[33msteals 2 coins\x1b[39m from {}",
+							self.bots[self.playing_bots[self.turn]],
+							self.get_bot_by_name(target_name.clone()),
+						),
+						self.log,
+					);
+					self.challenge_and_counter_round(
+						Action::Stealing(target_name.clone()),
+						target_name,
+					);
+				}
 			},
 			Action::Tax => {
 				self.history.push(History::ActionTax {

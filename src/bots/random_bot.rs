@@ -8,8 +8,8 @@ use crate::{
 };
 
 /// The random bot will not think about anything but will, just like monkey
-/// testing, throw some randomness into your tests with your own bot.
-/// It turns out competing with a bunch of random bots is actually hard.
+/// testing, throw some randomness into your tests with your own bot and helps
+/// the engine test its robustness.
 pub struct RandomBot;
 
 impl BotInterface for RandomBot {
