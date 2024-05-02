@@ -1,46 +1,49 @@
 # Coup CLI
 
+
+<p align="center"><img width="764" src="assets/coup.png"></p>
+
 > This is a CLI implementation of the game of [COUP](http://gamegrumps.wikia.com/wiki/Coup).
 
 <p align="center">
-	<img width="764" src="assets/coup-cli.png">
+	<a href="https://crates.io/crates/coup"><img src="https://img.shields.io/crates/v/coup.svg" alt="crates badge"></a>
+	<a href="https://crates.io/crates/coup"><img src="https://docs.rs/coup/badge.svg" alt="crates docs tests"></a>
+	<a href="https://github.com/dominikwilkowski/coup/actions/workflows/testing.yml"><img src="https://github.com/dominikwilkowski/coup/actions/workflows/testing.yml/badge.svg" alt="build status"></a>
 </p>
 
 This app is designed as a code challenge.
 It challenges you to write a bot that plays [COUP](http://gamegrumps.wikia.com/wiki/Coup) against other bots.
 
-The idea is you have three rounds of (1,000,000) games to find the winner (sum all scores).
+The idea is to have three rounds of (1,000,000) games to find the winner (sum all scores).
 Between each round you have time to make adjustments to your bot.
 
 ## How does this work?
 
-- [RULES](#rules)
+- [Rules](#rules)
 - [Scoring](#scoring)
 - [How to run the game](#how-to-run-the-game)
 - [How do I build a bot](#how-do-i-build-a-bot)
 - [How does the engine work](#how-does-the-engine-work)
-- [Development](#development)
 
-## RULES
+## Rules
 
-1. NodeJs only
-1. No dependencies
 1. No changes to engine
-1. Name folder appropriately (so you can target specific bots)
-1. No data sharing between games
-1. No access to other bots
+1. Name of bots don't change between rounds (so you can target specific bots)
+1. No data sharing between games within a round
+1. No file access to other bots
 1. No changing other bots
-1. No internet
-1. No js prototype changing
-1. Your code has to stay inside your bots folder
-1. Do not output to `stdout`
-1. At the beginning of each round you add PRs to the repo (we only merge on the day the round begins)
+1. No internet access or calls to OpenAI
+1. Do not output to `stdout` or `stderr`
 
 ## Scoring
 
 Each game is a zero-sum-game in terms of score.
-The score is determined by the number of players (can't be more than 6 per game) and winners
-(there are instances where the game can stall in a stale-mate with multiple winners).
+That means the amount of negative points given to losers + the amount of
+positive points given to winners equals to zero.
+
+The score is determined by the number of players (can't be more than 6 per game)
+and winners (there are instances where the game can stall in a stale-mate which
+the engine will stop and nominate multiple winners for).
 Each game will take a max of 6 bots that are randomly elected.
 Those who win get a positive score, those who lose will get a negative score.
 
@@ -49,269 +52,120 @@ Those who win get a positive score, those who lose will get a negative score.
 
 ## How to run the game
 
+You can run the game in two modes: `play` and `loop`.
+
+### Play mode
+
+<p align="center">
+	<img width="764" src="assets/play.png">
+</p>
+
+The `play` mode will play a single game and nominate (a) winner(s) at the end.
+
+```rust
+use coup::{
+	bots::{HonestBot, RandomBot, StaticBot},
+	Coup,
+};
+
+fn main() {
+	let mut coup_game = Coup::new(vec![
+		Box::new(StaticBot),
+		Box::new(StaticBot),
+		Box::new(HonestBot),
+		Box::new(HonestBot),
+		Box::new(RandomBot),
+		Box::new(RandomBot),
+	]);
+
+	coup_game.play();
+}
+```
+
+### Loop mode
+
 <p align="center">
 	<img width="968" src="assets/loop.gif">
 </p>
 
-The game comes with two simple "dumb" bots that just randomizes it's answers without checking much whether the actions are appropriate.
-Each bot lives inside its own folder inside the `bots` folder.
-The name of the folder determines the bots name.
+The `loop` mode will play `n` amount of games and sum all score and nominate (a)
+winner(s) at the end
 
-```sh
-.
-├── bots
-│   ├── bot1
-│   │   └── index.js
-│   ├── bot1
-│   │   └── index.js
-│   └── bot1
-│       └── index.js
-│
-├── src
-│   ├── constants.js
-│   ├── helper.js
-│   └── index.js
-│
-├── test
-│   └── test.js
-│
-└── README.md
-```
+```rust
+use coup::{
+	bots::{HonestBot, RandomBot, StaticBot},
+	Coup,
+};
 
-To run the game `cd` into the folder.
-Install dependencies (`prettier`):
+fn main() {
+	let mut coup_game = Coup::new(vec![
+		Box::new(StaticBot),
+		Box::new(StaticBot),
+		Box::new(HonestBot),
+		Box::new(HonestBot),
+		Box::new(RandomBot),
+		Box::new(RandomBot),
+	]);
 
-```sh
-yarn
-```
-
-**Do make sure you run the formatter before each commit**
-
-Run the formatter via:
-
-```sh
-yarn format
-```
-
-To play the game run:
-
-```sh
-yarn play
-```
-
-To run 1000 games:
-
-```sh
-yarn loop
-```
-
-To run `n` number of games:
-
-```sh
-yarn loop -- -r [n]
-```
-
-In the loop rounds all output is suppressed so that the games run smoothly on the day.
-For development please use the `-d` flag to enable debug mode. It will stop the game loop when it
-encounters an error and display the last game with error.
-
-```sh
-yarn loop -r [number] -d
-```
-
-To run the test suit:
-
-```sh
-yarn test
+	coup_game.looping(1_000_000);
+}
 ```
 
 ## How do I build a bot
 
-- Create a folder in the `bots` folder (next to the fake bots)
-- Pick a name for your bot (You should have a list of names before hand so bots can target specific other bots)
-- Include an `index.js` file that exports below class
-- Run as many test rounds as you want to
-- Create PR on the day of each round
+Implement the `BotInterface` and override the default implementations of each of
+the methods you'd like to take control over.
+The default implementation are the methods of the `StaticBot` which only takes
+`Income` and is forced to coup by the engine if it accumulated more or equal to
+10 coins. It does not challenge, counter or counter challenge.
 
-You get to require 4 functions from the engine at `constants.js` inside your bot:
+### Methods of the bot
 
-- `ALLBOTS()` Returns an array of all players in the game `<Player>`
-- `CARDS()` Returns an array of all 5 card types `<Card>`
-- `DECK()` Returns an array of all cards in the deck (3 of each)
-- `ACTIONS()` Returns an array of all actions `<Action>`
+The methods of `BotInterface` that will define the behavior of your bot.
 
-> TIP: If you console log out the string `STOP` the loop will stop as soon as a game prints this and print everything out from that game. Great for debugging.
-> Just make sure you remove the console log before submitting.
+- `get_name` – Called only once at the instantiation of the Coup game to identify your bot
+- `on_turn` – Called when it's your turn to decide what to do
+- `on_auto_coup` – Called when you have equal to or more than 10 coins and must coup.
+- `on_challenge_action_round` – Called when another bot played an action and everyone gets to decide whether they want to challenge that action.
+- `on_counter` – Called when someone played something that can be countered with a card you may have.
+- `on_challenge_counter_round` – Called when a bot played a counter. Now everyone gets to decided whether they want to challenge that counter card.
+- `on_swapping_cards` – Called when you played your ambassador and now need to decide which cards you want to keep.
+- `on_card_loss` – Called when you lost a card and now must decide which one you want to lose
 
-### `<Player>`
+### The context
 
-- `exampleBot1`
-- `exampleBot2`
+Each function gets `context` passed in which will contain below infos:
 
-### `<Card>`
-
-- `duke`
-- `assassin`
-- `captain`
-- `ambassador`
-- `contessa`
-
-### `<Action>`
-
-- `taking-1`
-- `foreign-aid`
-- `couping`
-- `taking-3`
-- `assassination`
-- `stealing`
-- `swapping`
-
-### `<CounterAction>`
-
-- `foreign-aid` -> [`duke`, `false`],
-- `assassination` -> [`contessa`, `false`],
-- `stealing` -> [`captain`, `ambassador`, `false`],
-- `taking-3` -> [`duke`, `false`],
-
-### Class to export
-
-The class you have to export from your bot needs to include the below methods:
-
-- `onTurn`
-  - Called when it is your turn to decide what you may want to do
-  - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards }`
-  - returns: `{ action: <Action>, against: <Player> }`
-- `onChallengeActionRound`
-  - Called when another bot made an action and everyone get's to decide whether they want to challenge that action
-  - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards, action, byWhom, toWhom }`
-  - returns: `<Boolean>`
-- `onCounterAction`
-  - Called when someone does something that can be countered with a card: `foreign-aid`, `stealing` and `assassination`
-  - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards, action, byWhom }`
-  - returns: `<CounterAction>`
-- `onCounterActionRound`
-  - Called when a bot did a counter action and everyone get's to decided whether they want to challenge that counter action
-  - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards, action, byWhom, toWhom, card, counterer }`
-  - returns: `<Boolean>`
-- `onSwappingCards`
-  - Called when you played your ambassador and now need to decide which cards you want to keep
-  - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards, newCards }`
-  - returns: `Array(<Card>)`
-- `onCardLoss`
-  - Called when you lose a card to decide which one you want to lose
-  - parameters: `{ history, myCards, myCoins, otherPlayers, discardedCards }`
-  - returns: `<Card>`
-
-### The parameters
-
-Each function is passed one parameter object that can be deconstructed into the below items.
-
-| parameter        | description                                                                                                                                                    |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `history`        | The history array. More below `Array(<History>)`                                                                                                               |
-| `myCards`        | An array of your cards `Array(<Card>)`                                                                                                                         |
-| `myCoins`        | The number of coins you have                                                                                                                                   |
-| `otherPlayers`   | An array of objects of each player, format: `[{ name: <Player>, coins: <Integer>, cards: <Integer> }, { name: <Player>, coins: <Integer>, cards: <Integer> }]` |
-| `discardedCards` | An array of all cards that have been discarded so far (from penalties, coups or assassinations)                                                                |
-| `action`         | The action that was taken `<Action>`                                                                                                                           |
-| `byWhom`         | Who did the action `<Player>`                                                                                                                                  |
-| `toWhom`         | To whom is the action directed `<Player>`                                                                                                                      |
-| `card`           | A string of the counter action taken by the previous bot                                                                                                       |
-| `newCards`       | An array of cards for the ambassador swap `Array(<Card>)`                                                                                                      |
-| `counterer`      | The player who countered an action                                                                                                                             |
-
-### The history array
-
-Each event is recorded in the history array. See below a list of all events and it's entires:
-
-An action:
-
-```
-{
-	type: 'action',
-	action: <Action>,
-	from: <Player>,
-	to: <Player>,
-}
-```
-
-Lose a card:
-
-```
-{
-	type: 'lost-card',
-	player: <Player>,
-	lost: <Card>,
-}
-```
-
-Challenge outcome:
-
-```
-{
-	type: 'challenge-round' || 'counter-round',
-	challenger: <Player>,
-	challengee: <Player>,
-	player: <Player>,
-	action: <Action>,
-	lying: <Boolean>,
-}
-```
-
-A Penalty:
-
-```
-{
-	type: 'penalty',
-	from: <Player>,
-}
-```
-
-An unsuccessful challenge:
-
-```
-{
-	type: 'unsuccessful-challenge',
-	action: 'swap-1',
-	from: <Player>,
-}
-```
-
-A counter action:
-
-```
-{
-	type: 'counter-action',
-	action: <Action>,
-	from: <Player>,
-	to: <Player>,
-	counter: <Card>,
-	counterer: <Player>,
-}
-```
+| key            | description                                                |
+| -------------- | ---------------------------------------------------------- |
+| `name`         | Your bots name after it was deduped by the engine          |
+| `cards`        | Your cards/influences you still have                       |
+| `coins`        | Your coins                                                 |
+| `playing_bots` | A list of all playing bots this round                      |
+| `discard_pile` | A list of all discarded cards so far in the game           |
+| `history`      | A list of each event that has happened in this game so far |
+| `score`        | The current score of the game                              |
 
 ## How does the engine work
 
-The challenge algorithm:
-
 ```
-if( assassination, stealing, swapping )
-	ChallengeRound via all bot.OnChallengeActionRound
-		? false = continue
-		: true = stop
-
-if( foreign-aid, assassination, stealing )
-	CounterAction via bot.OnCounterAction
-		? false = continue
-		: true = CounterChallengeRound via bot.OnCounterActionRound
-			? false = continue
-			: true = stop
-
-else
-	do-the-thing
+match action
+	Assassination | Stealing
+		=>
+			- challenge round
+			- counter from target
+			- counter challenge
+			- action
+	Coup | Income
+		=>
+			- action
+	ForeignAid
+		=>
+			- counter round from everyone
+			- counter challenge round
+			- action
+	Swapping | Tax
+		=>
+			- challenge round
+			- action
 ```
-
-## Development
-
-The game comes with it's own [test runner](./test/test.js) that runs through all(?) possible moves a bot can make.
-You can execute the test runner via `yarn test:code`.

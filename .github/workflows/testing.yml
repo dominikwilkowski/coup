@@ -1,36 +1,145 @@
-name: Testing
+name: Linting & Testing
 
-on: [push]
+defaults:
+  run:
+    shell: bash
+
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - 'main'
 
 jobs:
-  testing:
-    runs-on: ubuntu-latest
+  debug:
+    name: Debugging action on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v2.1.2
+      - name: Installing tree
+        run: sudo apt-get -y install tree & which tree
+
+      - name: Listing all files
+        run: tree -I "target*|.git*"
+
+
+  fmt:
+    name: Running cargo fmt on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Update toolchain & add rustfmt
+        run: |
+          rustup update
+          rustup component add rustfmt
+
+      - name: Run rustfmt
+        run: cargo fmt --all --check
+
+
+  check:
+    name: Running cargo check on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Update toolchain
+        run: rustup update
+
+      - name: Run check
+        run: cargo check
+
+
+  clippy:
+    name: Running cargo clippy on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: "-Dwarnings"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Update toolchain & add clippy
+        run: |
+          rustup update
+          rustup component add clippy
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          node-version: '12.x'
+          prefix-key: clippy-v0
+          key: clippy-${{ matrix.os }}
 
-      - name: Get yarn cache
-        id: yarn-cache
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: Fetch dependencies
+        run: cargo fetch --locked
 
-      - name: Cache dependencies
-        uses: actions/cache@v2
+      - name: Run clippy
+        run: cargo clippy -- --deny warnings
+
+
+  test:
+    name: Running cargo test on ${{ matrix.os }}
+    needs: [fmt, check, clippy]
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    runs-on: ${{ matrix.os }}
+    env:
+      CARGO_TERM_COLOR: always
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Update toolchain
+        run: rustup update
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
         with:
-          path: ${{ steps.yarn-cache.outputs.dir }}
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          prefix-key: test-v0
+          key: test-${{ matrix.os }}
 
-      - name: Node version
-        run: node --version
-      - name: npm version
-        run: npm --version
-      - name: Yarn version
-        run: yarn --version
+      - name: Build
+        run: cargo build
 
-      - run: yarn install --frozen-lockfile
-      - run: yarn test
+      - name: Run tests
+        run: cargo test
