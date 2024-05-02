@@ -7,7 +7,7 @@
 
 <p align="center">
 	<a href="https://crates.io/crates/coup"><img src="https://img.shields.io/crates/v/coup.svg" alt="crates badge"></a>
-	<a href="https://crates.io/crates/coup"><img src="https://docs.rs/coup/badge.svg" alt="crates docs tests"></a>
+	<a href="https://docs.rs/coup"><img src="https://docs.rs/coup/badge.svg" alt="crates docs tests"></a>
 	<a href="https://github.com/dominikwilkowski/coup/actions/workflows/testing.yml"><img src="https://github.com/dominikwilkowski/coup/actions/workflows/testing.yml/badge.svg" alt="build status"></a>
 </p>
 
