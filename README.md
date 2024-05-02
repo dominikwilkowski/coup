@@ -3,7 +3,7 @@
 
 <p align="center"><img width="764" src="assets/coup.png"></p>
 
-> This is a CLI implementation of the game of [COUP](http://gamegrumps.wikia.com/wiki/Coup).
+<p align="center">This is a CLI implementation of the game of [COUP](http://gamegrumps.wikia.com/wiki/Coup).</p>
 
 <p align="center">
 	<a href="https://crates.io/crates/coup"><img src="https://img.shields.io/crates/v/coup.svg" alt="crates badge"></a>
@@ -57,7 +57,7 @@ You can run the game in two modes: `play` and `loop`.
 ### Play mode
 
 <p align="center">
-	<img width="764" src="assets/play.png">
+	<img width="882" src="assets/play.png">
 </p>
 
 The `play` mode will play a single game and nominate (a) winner(s) at the end.
@@ -85,7 +85,7 @@ fn main() {
 ### Loop mode
 
 <p align="center">
-	<img width="968" src="assets/loop.gif">
+	<img width="680" src="assets/loop.gif">
 </p>
 
 The `loop` mode will play `n` amount of games and sum all score and nominate (a)
