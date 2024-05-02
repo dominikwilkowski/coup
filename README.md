@@ -3,7 +3,7 @@
 
 <p align="center"><img width="764" src="assets/coup.png"></p>
 
-<p align="center">This is a CLI implementation of the game of [COUP](http://gamegrumps.wikia.com/wiki/Coup).</p>
+<p align="center">This is a CLI implementation of the game of <a href="http://gamegrumps.wikia.com/wiki/Coup">COUP</a>.</p>
 
 <p align="center">
 	<a href="https://crates.io/crates/coup"><img src="https://img.shields.io/crates/v/coup.svg" alt="crates badge"></a>
