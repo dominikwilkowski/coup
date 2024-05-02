@@ -58,18 +58,22 @@ pub struct Context {
 /// The default implementation is a static implementation of a bot like the
 /// pre-build [crate::bots::StaticBot].
 pub trait BotInterface {
-	/// Called only once at the instantiation of the Coup game to identify your bot
-	/// The name might get a number appended if there is another bot with the same name
+	/// Called only once at the instantiation of the Coup game to identify your bot.
+	/// The name might get a number appended if there is another bot with the same name.
 	fn get_name(&self) -> String;
 
-	/// Called when it's your turn to decide what to do
+	/// Called when it's your turn to decide what to do.
+	///
+	/// The static implementation always plays [Action::Income].
 	fn on_turn(&self, _context: &Context) -> Action {
 		Action::Income
 	}
 
-	/// Called when you have equal to or more than 10 coins and must coup
+	/// Called when you have equal to or more than 10 coins and must coup.
 	/// You can use this method internally as well when you decide to coup on
-	/// your own
+	/// your own.
+	///
+	/// The static implementation coups the first bot it finds that isn't itself.
 	fn on_auto_coup(&self, context: &Context) -> String {
 		context
 			.playing_bots
@@ -82,11 +86,14 @@ pub trait BotInterface {
 
 	/// Called when another bot played an action and everyone gets to decide
 	/// whether they want to challenge that action.
+	///
 	/// Called for:
 	/// - [Action::Assassination]
 	/// - [Action::Swapping]
 	/// - [Action::Stealing]
 	/// - [Action::Tax]
+	///
+	/// The static implementation never challenges.
 	fn on_challenge_action_round(
 		&self,
 		_action: &Action,
@@ -98,10 +105,13 @@ pub trait BotInterface {
 
 	/// Called when someone played something that can be countered with a card
 	/// you may have.
+	///
 	/// Called for:
 	/// - [Action::Assassination]
 	/// - [Action::ForeignAid]
 	/// - [Action::Stealing]
+	///
+	/// The static implementation never counters.
 	fn on_counter(
 		&self,
 		_action: &Action,
@@ -113,10 +123,13 @@ pub trait BotInterface {
 
 	/// Called when a bot played a counter. Now everyone gets to decided whether
 	/// they want to challenge that counter card.
+	///
 	/// Called for:
 	/// - [Action::Assassination]
 	/// - [Action::ForeignAid]
 	/// - [Action::Stealing]
+	///
+	/// The static implementation never counter-challenges.
 	fn on_challenge_counter_round(
 		&self,
 		_action: &Action,
@@ -130,6 +143,8 @@ pub trait BotInterface {
 	/// you want to keep.
 	/// Return the cards you don't want anymore. They will be shuffled back into
 	/// the deck.
+	///
+	/// The static implementation gives back the cards it got from the deck.
 	fn on_swapping_cards(
 		&self,
 		new_cards: [Card; 2],
@@ -138,7 +153,9 @@ pub trait BotInterface {
 		new_cards
 	}
 
-	/// Called when you lost a card and now must decide which one you want to lose
+	/// Called when you lost a card and now must decide which one you want to lose.
+	///
+	/// The static implementation discards the first card it finds.
 	fn on_card_loss(&self, context: &Context) -> Card {
 		context.cards.clone().pop().unwrap()
 	}

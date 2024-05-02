@@ -8,6 +8,7 @@ use crate::bot::BotInterface;
 pub struct StaticBot;
 
 impl BotInterface for StaticBot {
+	/// StaticBot is the name
 	fn get_name(&self) -> String {
 		String::from("StaticBot")
 	}

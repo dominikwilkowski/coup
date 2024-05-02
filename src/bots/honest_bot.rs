@@ -1,4 +1,4 @@
-//! A honest bot implementation for you to use to test your own bot with.
+//! An honest bot implementation for you to use to test your own bot with.
 
 use crate::{
 	bot::{BotInterface, Context},
@@ -11,10 +11,13 @@ use crate::{
 pub struct HonestBot;
 
 impl BotInterface for HonestBot {
+	/// HonestBot is the name
 	fn get_name(&self) -> String {
 		String::from("HonestBot")
 	}
 
+	/// Acts on cards it has and falls back to [Action::Income].
+	/// Never plays [Action::ForeignAid] or [Action::Swapping].
 	fn on_turn(&self, context: &Context) -> Action {
 		let target = context
 			.playing_bots
@@ -34,6 +37,7 @@ impl BotInterface for HonestBot {
 		}
 	}
 
+	/// Looks for the bot with the least cards
 	fn on_auto_coup(&self, context: &Context) -> String {
 		let target = context
 			.playing_bots
@@ -44,6 +48,8 @@ impl BotInterface for HonestBot {
 		target.name.clone()
 	}
 
+	/// Challenges only if it can see all three cards associated with the current
+	/// action in either the discard pile or its own hand.
 	fn on_challenge_action_round(
 		&self,
 		action: &Action,
@@ -78,6 +84,7 @@ impl BotInterface for HonestBot {
 		}
 	}
 
+	/// Counters only if it has the card to counter
 	fn on_counter(
 		&self,
 		action: &Action,
@@ -97,6 +104,8 @@ impl BotInterface for HonestBot {
 		}
 	}
 
+	/// Counter-challenges only if it can see all three cards associated with the
+	/// current action in either the discard pile or its own hand.
 	fn on_challenge_counter_round(
 		&self,
 		action: &Action,
@@ -125,6 +134,7 @@ impl BotInterface for HonestBot {
 		}
 	}
 
+	/// Swaps duplicate cards
 	fn on_swapping_cards(
 		&self,
 		new_cards: [Card; 2],
@@ -141,6 +151,7 @@ impl BotInterface for HonestBot {
 		[discard_cards[0], discard_cards[1]]
 	}
 
+	/// Takes the first card to discard
 	fn on_card_loss(&self, context: &Context) -> Card {
 		context.cards.clone().pop().unwrap()
 	}

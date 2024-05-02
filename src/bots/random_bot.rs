@@ -13,10 +13,12 @@ use crate::{
 pub struct RandomBot;
 
 impl BotInterface for RandomBot {
+	/// RandomBot is the name
 	fn get_name(&self) -> String {
 		String::from("RandomBot")
 	}
 
+	/// Randomizes all possible [Action]
 	fn on_turn(&self, context: &Context) -> Action {
 		let mut targets = context.playing_bots.clone();
 		targets = targets
@@ -39,6 +41,7 @@ impl BotInterface for RandomBot {
 		actions[0].clone()
 	}
 
+	/// Randomizes who it coups
 	fn on_auto_coup(&self, context: &Context) -> String {
 		let mut targets = context.playing_bots.clone();
 		targets = targets
@@ -50,6 +53,7 @@ impl BotInterface for RandomBot {
 		targets[0].name.clone()
 	}
 
+	/// Randomizes if it challenges or not
 	fn on_challenge_action_round(
 		&self,
 		_action: &Action,
@@ -61,6 +65,7 @@ impl BotInterface for RandomBot {
 		challange[0]
 	}
 
+	/// Randomizes if it counters or not
 	fn on_counter(
 		&self,
 		_action: &Action,
@@ -72,6 +77,7 @@ impl BotInterface for RandomBot {
 		counter[0]
 	}
 
+	/// Randomizes if it counter-challenges or not
 	fn on_challenge_counter_round(
 		&self,
 		_action: &Action,
@@ -83,6 +89,7 @@ impl BotInterface for RandomBot {
 		challange[0]
 	}
 
+	/// Randomizes what card it swaps
 	fn on_swapping_cards(
 		&self,
 		new_cards: [Card; 2],
@@ -95,6 +102,7 @@ impl BotInterface for RandomBot {
 		[all_visible_cards[0], all_visible_cards[1]]
 	}
 
+	/// Randomizes what card it discards
 	fn on_card_loss(&self, context: &Context) -> Card {
 		let mut cards = context.cards.clone();
 		cards.shuffle(&mut thread_rng());

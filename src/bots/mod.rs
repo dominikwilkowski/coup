@@ -1,4 +1,4 @@
-//! A collection of pre-built bots to test with
+//! A collection of pre-built bots to test with.
 
 pub mod honest_bot;
 pub mod random_bot;

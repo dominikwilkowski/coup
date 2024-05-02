@@ -34,7 +34,7 @@ pub mod bots;
 
 use crate::bot::{BotInterface, Context, OtherBot};
 
-/// One of the five cards you get in the game of Coup
+/// One of the five cards you get in the game of Coup.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Card {
 	/// - [Action::Swapping] – Draw two character cards from the deck, choose which (if any) to exchange with your cards, then return two<br>
@@ -52,35 +52,35 @@ pub enum Card {
 	Duke,
 }
 
-/// Actions that can we taken with a [Card] you have
+/// Actions that can we taken with a [Card] you have.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-	/// Take this action with your [Card::Assassin]
+	/// Take this action with your [Card::Assassin].
 	Assassination(String),
 	/// This standard action can be taken at any time as long as you have at least
-	/// 7 coin
+	/// 7 coin.
 	Coup(String),
-	/// This standard action can be taken at any time
+	/// This standard action can be taken at any time.
 	ForeignAid,
-	/// Take this action with your [Card::Ambassador]
+	/// Take this action with your [Card::Ambassador].
 	Swapping,
-	/// This standard action can be taken at any time
+	/// This standard action can be taken at any time.
 	Income,
-	/// Take this action with your [Card::Captain]
+	/// Take this action with your [Card::Captain].
 	Stealing(String),
-	/// Take this action with your [Card::Duke]
+	/// Take this action with your [Card::Duke].
 	Tax,
 }
 
 /// Counters are played if something happens that can be countered with a
-/// [Card] you have
+/// [Card] you have.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Counter {
-	/// Block an assassination with your [Card::Contessa]
+	/// Block an assassination with your [Card::Contessa].
 	Assassination,
-	/// Block foreign aid with your [Card::Duke]
+	/// Block foreign aid with your [Card::Duke].
 	ForeignAid,
-	/// Block stealing with your [Card::Captain] or your [Card::Ambassador]
+	/// Block stealing with your [Card::Captain] or your [Card::Ambassador].
 	Stealing,
 }
 
@@ -89,49 +89,49 @@ enum ChallengeRound {
 	Counter,
 }
 
-/// A collection on all possible moves in the game for bots to analyze
+/// A collection on all possible moves in the game for bots to analyze.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum History {
-	/// A bot played an Assassin to assassinate another bot for 3 coins
+	/// A bot played an Assassin to assassinate another bot for 3 coins.
 	ActionAssassination { by: String, target: String },
-	/// A bot played to coup another bot with 10 coins
+	/// A bot played to coup another bot with 10 coins.
 	ActionCoup { by: String, target: String },
-	/// A bot takes 2 coins from the treasury
+	/// A bot takes 2 coins from the treasury.
 	ActionForeignAid { by: String },
-	/// A bot played an Ambassador
+	/// A bot played an Ambassador.
 	ActionSwapping { by: String },
-	/// A bot took 1 coin of income from the treasury
+	/// A bot took 1 coin of income from the treasury.
 	ActionIncome { by: String },
-	/// A bot played a Captain to steal 2 coins from another bot
+	/// A bot played a Captain to steal 2 coins from another bot.
 	ActionStealing { by: String, target: String },
-	/// A bot played a Duke to take 3 coins of tax from the treasury
+	/// A bot played a Duke to take 3 coins of tax from the treasury.
 	ActionTax { by: String },
 
-	/// A bot challenged another bot for having the Assassin
+	/// A bot challenged another bot for having the Assassin.
 	ChallengeAssassin { by: String, target: String },
-	/// A bot challenged another bot for having the Ambassador
+	/// A bot challenged another bot for having the Ambassador.
 	ChallengeAmbassador { by: String, target: String },
-	/// A bot challenged another bot for having the Captain
+	/// A bot challenged another bot for having the Captain.
 	ChallengeCaptain { by: String, target: String },
-	/// A bot challenged another bot for having the Duke
+	/// A bot challenged another bot for having the Duke.
 	ChallengeDuke { by: String, target: String },
 
-	/// Another bot was trying to assassinated so this bot played the Contessa to counter
+	/// Another bot was trying to assassinated so this bot played the Contessa to counter.
 	CounterAssassination { by: String, target: String },
-	/// Another bot was trying to take foreign aid from the treasury so this bot played the Duke to counter
+	/// Another bot was trying to take foreign aid from the treasury so this bot played the Duke to counter.
 	CounterForeignAid { by: String, target: String },
-	/// Another bot was trying to stealing from this bot so it played the Captain or Ambassador to counter
+	/// Another bot was trying to stealing from this bot so it played the Captain or Ambassador to counter.
 	CounterStealing { by: String, target: String },
 
-	/// Another bot countered with the Contessa and this bot challenged it for having that card
+	/// Another bot countered with the Contessa and this bot challenged it for having that card.
 	CounterChallengeContessa { by: String, target: String },
-	/// Another bot countered with the Duke and this bot challenged it for having that card
+	/// Another bot countered with the Duke and this bot challenged it for having that card.
 	CounterChallengeDuke { by: String, target: String },
-	/// Another bot countered with the Captain or Ambassador and this bot challenged it for having that card
+	/// Another bot countered with the Captain or Ambassador and this bot challenged it for having that card.
 	CounterChallengeCaptainAmbassedor { by: String, target: String },
 }
 
-/// The score of the game for all bots
+/// The score of the game for all bots.
 pub type Score = Vec<(String, f64)>;
 
 struct Bot {
@@ -172,7 +172,7 @@ impl fmt::Display for Bot {
 	}
 }
 
-/// The Coup game engine
+/// The Coup game engine.
 pub struct Coup {
 	bots: Vec<Bot>,
 	playing_bots: Vec<usize>,
@@ -188,7 +188,7 @@ pub struct Coup {
 }
 
 impl Coup {
-	/// Start a new Coup game by passing in all your bots in a Vec
+	/// Start a new Coup game by passing in all your bots in a Vec.
 	pub fn new(user_bots: Vec<Box<dyn BotInterface>>) -> Self {
 		let mut bots: Vec<Bot> = Vec::new();
 		let mut existing_names: Vec<String> = Vec::new();
@@ -235,7 +235,7 @@ impl Coup {
 
 	/// A public method to get a new deck.
 	/// This can be used by bots to make sure you get the same amount of cards as
-	/// the engine does
+	/// the engine does.
 	pub fn new_deck() -> Vec<Card> {
 		let mut deck = vec![
 			Card::Ambassador,
@@ -440,7 +440,7 @@ impl Coup {
 	}
 
 	/// Playing a game which means we setup the table, give each bots their cards
-	/// and coins and start the game loop
+	/// and coins and start the game loop.
 	pub fn play(&mut self) {
 		self.setup();
 
@@ -1136,7 +1136,7 @@ impl Coup {
 		result
 	}
 
-	/// Play n number of rounds and tally up the score in the CLI
+	/// Play n number of rounds and tally up the score in the CLI.
 	pub fn looping(&mut self, rounds: u64) {
 		self.setup();
 		self.log = false;
