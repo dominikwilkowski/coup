@@ -37,7 +37,7 @@ pub struct OtherBot {
 /// coins but also what other bots are still in the game, the discard pile etc.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Context {
-	/// Your name in the game as identifier
+	/// Your bots name after it was deduped by the engine as identifier
 	pub name: String,
 	/// Your cards/influences you still have
 	pub cards: Vec<Card>,
@@ -58,6 +58,8 @@ pub struct Context {
 /// The default implementation is a static implementation of a bot like the
 /// pre-build [crate::bots::StaticBot].
 pub trait BotInterface {
+	/// Called only once at the instantiation of the Coup game to identify your bot
+	/// The name might get a number appended if there is another bot with the same name
 	fn get_name(&self) -> String;
 
 	/// Called when it's your turn to decide what to do

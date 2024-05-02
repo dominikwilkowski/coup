@@ -92,25 +92,42 @@ enum ChallengeRound {
 /// A collection on all possible moves in the game for bots to analyze
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum History {
+	/// A bot played an Assassin to assassinate another bot for 3 coins
 	ActionAssassination { by: String, target: String },
+	/// A bot played to coup another bot with 10 coins
 	ActionCoup { by: String, target: String },
+	/// A bot takes 2 coins from the treasury
 	ActionForeignAid { by: String },
+	/// A bot played an Ambassador
 	ActionSwapping { by: String },
+	/// A bot took 1 coin of income from the treasury
 	ActionIncome { by: String },
+	/// A bot played a Captain to steal 2 coins from another bot
 	ActionStealing { by: String, target: String },
+	/// A bot played a Duke to take 3 coins of tax from the treasury
 	ActionTax { by: String },
 
+	/// A bot challenged another bot for having the Assassin
 	ChallengeAssassin { by: String, target: String },
+	/// A bot challenged another bot for having the Ambassador
 	ChallengeAmbassador { by: String, target: String },
+	/// A bot challenged another bot for having the Captain
 	ChallengeCaptain { by: String, target: String },
+	/// A bot challenged another bot for having the Duke
 	ChallengeDuke { by: String, target: String },
 
+	/// Another bot was trying to assassinated so this bot played the Contessa to counter
 	CounterAssassination { by: String, target: String },
+	/// Another bot was trying to take foreign aid from the treasury so this bot played the Duke to counter
 	CounterForeignAid { by: String, target: String },
+	/// Another bot was trying to stealing from this bot so it played the Captain or Ambassador to counter
 	CounterStealing { by: String, target: String },
 
+	/// Another bot countered with the Contessa and this bot challenged it for having that card
 	CounterChallengeContessa { by: String, target: String },
+	/// Another bot countered with the Duke and this bot challenged it for having that card
 	CounterChallengeDuke { by: String, target: String },
+	/// Another bot countered with the Captain or Ambassador and this bot challenged it for having that card
 	CounterChallengeCaptainAmbassedor { by: String, target: String },
 }
 
