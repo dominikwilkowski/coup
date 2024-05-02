@@ -153,15 +153,15 @@ match action
 	Assassination | Stealing
 		=>
 			- challenge round
-			- counter round
-			- counter challenge round
+			- counter from target
+			- counter challenge
 			- action
 	Coup | Income
 		=>
 			- action
 	ForeignAid
 		=>
-			- counter round
+			- counter round from everyone
 			- counter challenge round
 			- action
 	Swapping | Tax

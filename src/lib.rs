@@ -1733,7 +1733,556 @@ mod tests {
 	}
 
 	// TODO: test_play
-	// TODO: test_game_loop
+
+	#[test]
+	fn test_game_loop() {
+		struct ActionChallengeBot;
+		impl BotInterface for ActionChallengeBot {
+			fn get_name(&self) -> String {
+				String::from("ActionChallengeBot")
+			}
+			fn on_challenge_action_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				true
+			}
+		}
+		struct ChallengeCounterBot;
+		impl BotInterface for ChallengeCounterBot {
+			fn get_name(&self) -> String {
+				String::from("ChallengeCounterBot")
+			}
+			fn on_challenge_counter_round(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				true
+			}
+		}
+		struct CounterBot;
+		impl BotInterface for CounterBot {
+			fn get_name(&self) -> String {
+				String::from("CounterBot")
+			}
+			fn on_counter(
+				&self,
+				_action: &Action,
+				_by: String,
+				_context: &Context,
+			) -> bool {
+				true
+			}
+		}
+		struct AssassinationBot;
+		impl BotInterface for AssassinationBot {
+			fn get_name(&self) -> String {
+				String::from("AssassinationBot")
+			}
+			fn on_turn(&self, _context: &Context) -> Action {
+				Action::Assassination(String::from("StaticBot"))
+			}
+		}
+		struct CoupBot;
+		impl BotInterface for CoupBot {
+			fn get_name(&self) -> String {
+				String::from("CoupBot")
+			}
+			fn on_turn(&self, _context: &Context) -> Action {
+				Action::Coup(String::from("StaticBot"))
+			}
+		}
+		struct ForeignAidBot;
+		impl BotInterface for ForeignAidBot {
+			fn get_name(&self) -> String {
+				String::from("ForeignAidBot")
+			}
+			fn on_turn(&self, _context: &Context) -> Action {
+				Action::ForeignAid
+			}
+		}
+		struct SwappingBot;
+		impl BotInterface for SwappingBot {
+			fn get_name(&self) -> String {
+				String::from("SwappingBot")
+			}
+			fn on_turn(&self, _context: &Context) -> Action {
+				Action::Swapping
+			}
+		}
+		struct IncomeBot;
+		impl BotInterface for IncomeBot {
+			fn get_name(&self) -> String {
+				String::from("IncomeBot")
+			}
+			fn on_turn(&self, _context: &Context) -> Action {
+				Action::Income
+			}
+		}
+		struct StealingBot;
+		impl BotInterface for StealingBot {
+			fn get_name(&self) -> String {
+				String::from("StealingBot")
+			}
+			fn on_turn(&self, _context: &Context) -> Action {
+				Action::Stealing(String::from("StaticBot"))
+			}
+		}
+		struct TaxBot;
+		impl BotInterface for TaxBot {
+			fn get_name(&self) -> String {
+				String::from("TaxBot")
+			}
+			fn on_turn(&self, _context: &Context) -> Action {
+				Action::Tax
+			}
+		}
+
+		// Challenge successful
+		let mut coup = Coup::new(vec![
+			Box::new(AssassinationBot),
+			Box::new(ActionChallengeBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 4;
+		coup.bots[2].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[0].coins, 4);
+		assert_eq!(coup.bots[1].cards.len(), 2);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![
+				History::ActionAssassination {
+					by: String::from("AssassinationBot"),
+					target: String::from("StaticBot"),
+				},
+				History::ChallengeAssassin {
+					by: String::from("ActionChallengeBot"),
+					target: String::from("AssassinationBot"),
+				}
+			]
+		);
+
+		// Challenge unsuccessful
+		let mut coup = Coup::new(vec![
+			Box::new(StealingBot),
+			Box::new(ActionChallengeBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 4;
+		coup.bots[2].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards.len(), 2);
+		assert_eq!(coup.bots[0].coins, 6);
+		assert_eq!(coup.bots[1].cards.len(), 1);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[2].coins, 0);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![
+				History::ActionStealing {
+					by: String::from("StealingBot"),
+					target: String::from("StaticBot"),
+				},
+				History::ChallengeCaptain {
+					by: String::from("ActionChallengeBot"),
+					target: String::from("StealingBot"),
+				}
+			]
+		);
+
+		// Counter successful
+		let mut coup = Coup::new(vec![
+			Box::new(ForeignAidBot),
+			Box::new(CounterBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 4;
+		coup.bots[2].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 4);
+		assert_eq!(coup.bots[1].cards.len(), 2);
+		assert_eq!(coup.bots[2].cards, vec![Card::Ambassador, Card::Assassin]);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![
+				History::ActionForeignAid {
+					by: String::from("ForeignAidBot"),
+				},
+				History::CounterForeignAid {
+					by: String::from("CounterBot"),
+					target: String::from("ForeignAidBot"),
+				}
+			]
+		);
+
+		// Counter challenge successful
+		let mut coup = Coup::new(vec![
+			Box::new(ForeignAidBot),
+			Box::new(CounterBot),
+			Box::new(ChallengeCounterBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 4;
+		coup.bots[1].cards = vec![Card::Ambassador, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 6);
+		assert_eq!(coup.bots[1].cards, vec![Card::Ambassador]);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![
+				History::ActionForeignAid {
+					by: String::from("ForeignAidBot"),
+				},
+				History::CounterForeignAid {
+					by: String::from("CounterBot"),
+					target: String::from("ForeignAidBot"),
+				},
+				History::CounterChallengeDuke {
+					by: String::from("ChallengeCounterBot"),
+					target: String::from("CounterBot"),
+				},
+			]
+		);
+
+		// Counter challenge unsuccessful
+		let mut coup = Coup::new(vec![
+			Box::new(ForeignAidBot),
+			Box::new(CounterBot),
+			Box::new(ChallengeCounterBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 4;
+		coup.bots[1].cards = vec![Card::Duke, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 4);
+		assert_eq!(coup.bots[1].cards.len(), 2);
+		assert_eq!(coup.bots[2].cards.len(), 1);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![
+				History::ActionForeignAid {
+					by: String::from("ForeignAidBot"),
+				},
+				History::CounterForeignAid {
+					by: String::from("CounterBot"),
+					target: String::from("ForeignAidBot"),
+				},
+				History::CounterChallengeDuke {
+					by: String::from("ChallengeCounterBot"),
+					target: String::from("CounterBot"),
+				},
+			]
+		);
+
+		// Assassination
+		let mut coup = Coup::new(vec![
+			Box::new(AssassinationBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 4;
+		coup.bots[1].cards = vec![Card::Duke, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 1);
+		assert_eq!(coup.bots[1].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![History::ActionAssassination {
+				by: String::from("AssassinationBot"),
+				target: String::from("StaticBot"),
+			},]
+		);
+
+		// Coup
+		let mut coup = Coup::new(vec![
+			Box::new(CoupBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 9;
+		coup.bots[1].cards = vec![Card::Duke, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 2);
+		assert_eq!(coup.bots[1].cards, vec![Card::Duke]);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![History::ActionCoup {
+				by: String::from("CoupBot"),
+				target: String::from("StaticBot"),
+			},]
+		);
+
+		// ForeignAid
+		let mut coup = Coup::new(vec![
+			Box::new(ForeignAidBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 3;
+		coup.bots[1].cards = vec![Card::Duke, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 5);
+		assert_eq!(coup.bots[1].cards, vec![Card::Duke, Card::Assassin]);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![History::ActionForeignAid {
+				by: String::from("ForeignAidBot"),
+			},]
+		);
+
+		// Swapping
+		let mut coup = Coup::new(vec![
+			Box::new(SwappingBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 3;
+		coup.bots[1].cards = vec![Card::Duke, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards.len(), 2);
+		assert_eq!(coup.bots[0].coins, 3);
+		assert_eq!(coup.bots[1].cards, vec![Card::Duke, Card::Assassin]);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![History::ActionSwapping {
+				by: String::from("SwappingBot"),
+			},]
+		);
+
+		// Income
+		let mut coup = Coup::new(vec![
+			Box::new(IncomeBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 3;
+		coup.bots[1].cards = vec![Card::Duke, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 4);
+		assert_eq!(coup.bots[1].cards, vec![Card::Duke, Card::Assassin]);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![History::ActionIncome {
+				by: String::from("IncomeBot"),
+			},]
+		);
+
+		// Stealing
+		let mut coup = Coup::new(vec![
+			Box::new(StealingBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 3;
+		coup.bots[1].cards = vec![Card::Duke, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 5);
+		assert_eq!(coup.bots[1].cards, vec![Card::Duke, Card::Assassin]);
+		assert_eq!(coup.bots[1].coins, 0);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![History::ActionStealing {
+				by: String::from("StealingBot"),
+				target: String::from("StaticBot"),
+			},]
+		);
+
+		// Tax
+		let mut coup = Coup::new(vec![
+			Box::new(TaxBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.bots[0].cards = vec![Card::Duke, Card::Captain];
+		coup.bots[0].coins = 3;
+		coup.bots[1].cards = vec![Card::Duke, Card::Assassin];
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+		coup.turn = 0;
+		coup.history = vec![];
+
+		coup.game_loop();
+
+		assert_eq!(coup.bots[0].cards, vec![Card::Duke, Card::Captain]);
+		assert_eq!(coup.bots[0].coins, 6);
+		assert_eq!(coup.bots[1].cards, vec![Card::Duke, Card::Assassin]);
+		assert_eq!(coup.bots[2].cards.len(), 2);
+		assert_eq!(coup.bots[3].cards.len(), 2);
+		assert_eq!(coup.bots[4].cards.len(), 2);
+		assert_eq!(coup.bots[5].cards.len(), 2);
+		assert_eq!(
+			coup.history,
+			vec![History::ActionTax {
+				by: String::from("TaxBot"),
+			},]
+		);
+	}
 
 	#[test]
 	fn test_challenge_and_counter_round_assassination() {
