@@ -1,8 +1,10 @@
 # Coup CLI
 
+
+<p align="center"><img width="764" src="assets/coup.png"></p>
+
 > This is a CLI implementation of the game of [COUP](http://gamegrumps.wikia.com/wiki/Coup).
 
-<p align="center"><img width="764" src="assets/coup-cli.png"></p>
 <p align="center">
 	<a href="https://crates.io/crates/coup"><img src="https://img.shields.io/crates/v/coup.svg" alt="crates badge"></a>
 	<a href="https://crates.io/crates/coup"><img src="https://docs.rs/coup/badge.svg" alt="crates docs tests"></a>
@@ -55,7 +57,7 @@ You can run the game in two modes: `play` and `loop`.
 ### Play mode
 
 <p align="center">
-	<img width="764" src="assets/coup-cli.png">
+	<img width="764" src="assets/play.png">
 </p>
 
 The `play` mode will play a single game and nominate (a) winner(s) at the end.
