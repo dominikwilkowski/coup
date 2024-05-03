@@ -154,15 +154,15 @@ The methods of `BotInterface` that will define the behavior of your bot.
 
 Each function gets `context` passed in which will contain below infos:
 
-| key            | description                                                |
-| -------------- | ---------------------------------------------------------- |
-| `name`         | Your bots name after it was deduped by the engine          |
-| `cards`        | Your cards/influences you still have                       |
-| `coins`        | Your coins                                                 |
-| `playing_bots` | A list of all playing bots this round                      |
-| `discard_pile` | A list of all discarded cards so far in the game           |
-| `history`      | A list of each event that has happened in this game so far |
-| `score`        | The current score of the game                              |
+| key            | description                                                                                                                                                                                     |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`         | Your bots name after it was de-duped by the engine. This means if you have multiple bots with the same name they get a space and a number appended to their name which is used as an identifier |
+| `cards`        | Your cards/influences you still have                                                                                                                                                            |
+| `coins`        | Your coins                                                                                                                                                                                      |
+| `playing_bots` | A list of all playing bots this round                                                                                                                                                           |
+| `discard_pile` | A list of all discarded cards so far in the game                                                                                                                                                |
+| `history`      | A list of each event that has happened in this game so far                                                                                                                                      |
+| `score`        | The current score of the game                                                                                                                                                                   |
 
 ## How does the engine work
 
