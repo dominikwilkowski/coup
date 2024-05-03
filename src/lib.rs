@@ -890,7 +890,7 @@ impl Coup {
 			);
 
 			if countering {
-				counterer_name = bot.name.clone();
+				counterer_name.clone_from(&bot.name);
 				break;
 			}
 		}
