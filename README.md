@@ -1,5 +1,4 @@
-# Coup CLI
-
+# Coup
 
 <p align="center"><img width="764" src="assets/coup.png"></p>
 
@@ -118,6 +117,25 @@ the methods you'd like to take control over.
 The default implementation are the methods of the `StaticBot` which only takes
 `Income` and is forced to coup by the engine if it accumulated more or equal to
 10 coins. It does not challenge, counter or counter challenge.
+
+The simplest way to build a bot by falling back to static behavior for each method would be:
+
+```rust
+use coup::bot::BotInterface;
+
+pub struct MyBot;
+
+impl BotInterface for MyBot {
+	fn get_name(&self) -> String {
+		String::from("MyBot")
+	}
+}
+```
+
+_(This is what the `StaticBot` is.)_
+
+From there you can choose which, if not all, of the below methods you change to
+make this bot your own.
 
 ### Methods of the bot
 
