@@ -659,6 +659,19 @@ impl Coup {
 		};
 	}
 
+	fn get_bot_list_starting_from_name(&self, bot_name: &str) -> Vec<usize> {
+		let bot_index = self
+			.playing_bots
+			.iter()
+			.position(|bot_index| self.bots[*bot_index].name.clone() == bot_name)
+			.unwrap();
+		self.playing_bots[bot_index + 1..]
+			.iter()
+			.chain(self.playing_bots[..bot_index].iter())
+			.cloned()
+			.collect()
+	}
+
 	fn challenge_and_counter_round(
 		&mut self,
 		action: Action,
@@ -876,12 +889,10 @@ impl Coup {
 		// On Action::ForeignAid
 		// Does anyone want to counter this action?
 		let mut counterer_name = String::new();
-		for bot_index in self.playing_bots.iter() {
+		for bot_index in
+			self.get_bot_list_starting_from_name(&playing_bot_name).iter()
+		{
 			let bot = &self.bots[*bot_index];
-			// Skipping the challenger
-			if bot.name.clone() == playing_bot_name.clone() {
-				continue;
-			}
 
 			let countering = bot.interface.on_counter(
 				&Action::ForeignAid,
@@ -939,12 +950,8 @@ impl Coup {
 		action: &Action,
 		by: String,
 	) -> Option<String> {
-		for bot_index in self.playing_bots.iter() {
+		for bot_index in self.get_bot_list_starting_from_name(&by).iter() {
 			let bot = &self.bots[*bot_index];
-			// skipping the challenger
-			if bot.name.clone() == by.clone() {
-				continue;
-			}
 
 			let context = self.get_context(bot.name.clone());
 
@@ -2285,6 +2292,40 @@ mod tests {
 	}
 
 	#[test]
+	fn test_get_bot_list_starting_from_name() {
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.playing_bots = vec![0, 1, 2, 3, 4];
+
+		assert_eq!(
+			coup.get_bot_list_starting_from_name("StaticBot"),
+			vec![1, 2, 3, 4]
+		);
+		assert_eq!(
+			coup.get_bot_list_starting_from_name("StaticBot 2"),
+			vec![2, 3, 4, 0]
+		);
+		assert_eq!(
+			coup.get_bot_list_starting_from_name("StaticBot 3"),
+			vec![3, 4, 0, 1]
+		);
+		assert_eq!(
+			coup.get_bot_list_starting_from_name("StaticBot 4"),
+			vec![4, 0, 1, 2]
+		);
+		assert_eq!(
+			coup.get_bot_list_starting_from_name("StaticBot 5"),
+			vec![0, 1, 2, 3]
+		);
+	}
+
+	#[test]
 	fn test_challenge_and_counter_round_assassination() {
 		struct ActionChallengeBot;
 		impl BotInterface for ActionChallengeBot {
@@ -3458,10 +3499,7 @@ mod tests {
 			String::from("TestBot 2"),
 		);
 
-		assert_eq!(
-			coup.bots[0].interface.get_name(),
-			String::from("TestBoton_challenge_counter_round")
-		);
+		assert_eq!(coup.bots[0].interface.get_name(), String::from("TestBot"));
 		assert_eq!(coup.bots[1].interface.get_name(), String::from("TestBot"));
 		assert_eq!(
 			coup.bots[2].interface.get_name(),
@@ -3481,9 +3519,7 @@ mod tests {
 
 		assert_eq!(
 			coup.bots[0].interface.get_name(),
-			String::from(
-				"TestBoton_challenge_counter_round,on_challenge_counter_round"
-			)
+			String::from("TestBoton_challenge_counter_round")
 		);
 		assert_eq!(
 			coup.bots[1].interface.get_name(),
