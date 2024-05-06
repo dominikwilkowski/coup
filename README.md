@@ -8,11 +8,11 @@
 
 # Coup
 
-This is a coding game where bots you build play the popular card game
+This is a coding game where, bots you build, play the popular card game
 [COUP](https://en.wikipedia.org/wiki/Coup_(card_game)).
 
-You write a bot to play COUP against other bots and tweak the behavior of your
-bot until you find a winning strategy.
+You write a bot to play COUP against other bots and tweak its behavior until you
+find a winning strategy.
 
 **_This works best if you buy the physical card game and play it a couple times maybe during your lunch break_**
 
