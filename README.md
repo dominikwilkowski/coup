@@ -55,7 +55,7 @@ Those who win get a positive score, those who lose will get a negative score.
 
 ## How to run the game
 
-You can run the game in two modes: `play` and `loop`.
+You can run the game in two modes: [`play`](#play-mode) and [`loop`](#loop-mode).
 
 ### Play mode
 
@@ -213,6 +213,8 @@ the challenge.
 So If player A plays an action then the first bot asked if they want to
 challenge this is player B. If player C does the action the first bot will be
 player D.
+
+Perhaps best visible in [the test](https://github.com/dominikwilkowski/coup/blob/3c9fc9c1203eb8993998dc12afed323a92bcb94f/src/lib.rs#L2294-L2326).
 
 ### Targeting other bots
 
