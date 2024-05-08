@@ -256,6 +256,12 @@ bot that does not exist).
 
 ## Changelog
 
+### `v1.1.1`
+Fixed engine to check if a target bot not just exists but also is in play.
+Before a bot could have targeted another bot who is not playing in this round
+(where we have more than 6 bots) which could have resulted in a panic as these
+bots may not have 2 cards.
+
 ### `v1.1.0`
 Challenges and counter challenges are not more fair by making sure the first bot
 being asked for a challenge is the bot next in line according to the bots

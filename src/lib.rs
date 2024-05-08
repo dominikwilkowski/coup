@@ -260,7 +260,7 @@ impl Coup {
 
 	fn setup(&mut self) {
 		// A fresh deck
-		let mut deck = Coup::new_deck();
+		self.deck = Coup::new_deck();
 
 		// Put the index of all bots into play so we can shuffle them later
 		self.playing_bots.clear();
@@ -274,11 +274,10 @@ impl Coup {
 
 		// Give all playing bots cards and coins
 		for bot in self.playing_bots.iter() {
-			let new_cards = vec![deck.pop().unwrap(), deck.pop().unwrap()];
+			let new_cards = vec![self.deck.pop().unwrap(), self.deck.pop().unwrap()];
 			self.bots[*bot].cards = new_cards;
 			self.bots[*bot].coins = 2;
 		}
-		self.deck = deck;
 
 		self.discard_pile = vec![];
 		self.history = vec![];
@@ -330,15 +329,15 @@ impl Coup {
 			return;
 		}
 		let context = self.get_context(name.clone());
-		self.bots.iter_mut().enumerate().for_each(|(index, bot)| {
+		self.bots.iter_mut().for_each(|bot| {
 			let context = Context {
 				coins: bot.coins,
 				cards: bot.cards.clone(),
 				..context.clone()
 			};
-			if !self.playing_bots.contains(&index) {
-			} else if bot.name == name {
+			if bot.name == name {
 				let lost_card = bot.interface.on_card_loss(&context);
+				// Bot discarded a card it didn't have so now we kill it dead
 				if !bot.cards.contains(&lost_card) {
 					Self::log(format_args!("🚨  {} is being penalized because \x1b[33mit discarded a card({:?}) it didn't have\x1b[39m", bot, lost_card), self.log);
 
@@ -389,7 +388,12 @@ impl Coup {
 	}
 
 	fn target_not_found(&self, target: String) -> bool {
-		self.bots.iter().filter(|bot| bot.name == target).count() != 1
+		self
+			.playing_bots
+			.iter()
+			.filter(|bot| self.bots[**bot].name == target)
+			.count()
+			!= 1
 	}
 
 	fn set_score(&mut self, winners: Vec<String>) {
@@ -649,7 +653,7 @@ impl Coup {
 			.copied()
 			.collect::<Vec<usize>>();
 
-		// We move to the next turn
+		// We move to the next turn (turn is the moving index self.playing_bots)
 		self.turn = if self.playing_bots.is_empty()
 			|| self.turn >= self.playing_bots.len() - 1
 		{
@@ -1650,6 +1654,24 @@ mod tests {
 		assert_eq!(coup.target_not_found(String::from("StaticBot")), false);
 		assert_eq!(coup.target_not_found(String::from("StaticBot 3")), true);
 		assert_eq!(coup.target_not_found(String::from("StaticBot 2")), false);
+
+		let mut coup = Coup::new(vec![
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+			Box::new(StaticBot),
+		]);
+		coup.setup();
+		coup.playing_bots = vec![0, 1, 2, 3, 4, 5];
+
+		assert_eq!(coup.target_not_found(String::from("StaticBot 7")), true);
+
+		coup.playing_bots = vec![1, 2, 3, 4, 5, 6];
+
+		assert_eq!(coup.target_not_found(String::from("StaticBot 7")), false);
 	}
 
 	#[test]
@@ -3907,7 +3929,12 @@ mod tests {
 		);
 	}
 
-	// TODO: test_looping
+	#[test]
+	fn test_test_looping() {
+		let mut coup = Coup::new(vec![Box::new(StaticBot), Box::new(StaticBot)]);
+		coup.looping(5000);
+		// just making sure looping doesn't panic here. Testing it further is hard
+	}
 
 	// *******************************| Actions |****************************** //
 	#[test]
